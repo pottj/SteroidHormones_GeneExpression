@@ -4,8 +4,10 @@ Here I want to track my progress
 
 ## June 2024
 
-- 14/06/2024: create github repository
-
+- 14/06/2024: 
+    - create github repository
+    - create first script for data preparation of LIFE-Adult
+  
 ## April/May 2024
 
 Write and submit proposal for LIFE Project Agreements (LIFE PV)
