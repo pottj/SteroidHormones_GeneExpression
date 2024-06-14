@@ -48,3 +48,13 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# other stuff
+SourceFile_forostar.R
+archive/
+temp/
+data/
+results/
+*.html
+*.out
+*.pdf
