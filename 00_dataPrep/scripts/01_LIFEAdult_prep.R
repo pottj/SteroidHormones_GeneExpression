@@ -68,8 +68,9 @@ myTab[,ALIQUOT_genetics := D00364[matched,ADULT_SNP_SAMPLING_ID]]
 
 D00403 = data.table(read_excel(paste0(path_LIFEAdult,data[grepl("D00403",data)])))
 myTab[,GE := F]
-myTab[SIC %in% D00403$SIC, GE := T]
+myTab[SIC %in% D00403[D00403_QUALI_OK==1,SIC], GE := T]
 myTab[,table(GE)]
+D00403 = D00403[D00403_QUALI_OK==1,]
 matched = match(myTab$SIC,D00403$SIC)
 table(is.na(matched))
 myTab[,ALIQUOT_GE := D00403[matched,D00403_ALIQUOT]]
@@ -156,12 +157,16 @@ myTab[GENDER==2 & !is.na(D133_daysLastMenst) & AGE<60,group := "premenopausal"]
 #' - no blood aliquot available
 #' - sex in gender questionnaire does not match sex in D00153
 #' - women without uterus or ovaries 
+#' - samples with missing data on time of blood draw, smoking or BMI
 #' 
 myTab[,goodSample := T]
 myTab[D038_G03==T | D038_H02AB==T | D133_med_antibaby==1 | D133_med_HRT==1, goodSample := F]
 myTab[is.na(ALIQUOT) & is.na(ALIQUOT_genetics) & is.na(ALIQUOT_GE), goodSample := F]
 myTab[GENDER != D133_sex & !is.na(D133_sex), goodSample := F]
 myTab[D133_removedUterus==1 | D133_removedOvaries==1, goodSample := F]
+myTab[is.na(D074_BMI), goodSample := F]
+myTab[is.na(D141_smokeStatus), goodSample := F]
+myTab[is.na(D126_time), goodSample := F]
 myTab[is.na(group), goodSample := F]
 myTab[,table(goodSample,group)]
 
@@ -182,9 +187,7 @@ myTab = rbind(myTab_nodups,myTab_dups)
 #' # Load blood parameter
 #' ***
 #' Maybe I can do this per loop? 
-
-data2 = data[grepl("T",data)]
-
+#' 
 myAliquots = unique(c(myTab$ALIQUOT,myTab$ALIQUOT_GE2,myTab$ALIQUOT_genetics))
 myAliquots = myAliquots[!is.na(myAliquots)]
 myTab2 = data.table(aliquot = myAliquots,
@@ -192,6 +195,24 @@ myTab2 = data.table(aliquot = myAliquots,
                     genetics = F)
 myTab2[aliquot %in% myTab$ALIQUOT_GE2,GE := T]
 myTab2[aliquot %in% myTab$ALIQUOT_genetics,genetics := T]
+matched = match(myTab2$aliquot,myTab$ALIQUOT)
+table(is.na(matched))
+myTab2[,SIC := myTab[matched,SIC]]
+matched = match(myTab2$aliquot,myTab$ALIQUOT_GE2)
+table(is.na(matched))
+myTab2[,SIC2 := myTab[matched,SIC]]
+matched = match(myTab2$aliquot,myTab$ALIQUOT_genetics)
+table(is.na(matched))
+myTab2[,SIC3 := myTab[matched,SIC]]
+myTab2[SIC != SIC2,]
+myTab2[SIC != SIC3,]
+myTab2[is.na(SIC),SIC:= SIC2]
+myTab2[is.na(SIC),SIC:= SIC3]
+myTab2[,SIC2 := NULL]
+myTab2[,SIC3 := NULL]       
+myTab2 = myTab2[,c(4,1:3)]
+
+data2 = data[grepl("T",data)]
 
 dumTab = foreach(i=1:length(data2))%do%{
   #i=11
@@ -208,42 +229,43 @@ dumTab = foreach(i=1:length(data2))%do%{
 }
 
 myTab2[,table(GE,genetics,!is.na(CORT_S))]
-names(myTab2)[7] = "E2_S"
-names(myTab2)[11] = "TESTO_LCMS"
-names(myTab2)[13] = "PROG_LCMS"
-names(myTab2)[14] = "E2_LCMS"
-names(myTab2)[15] = "DHEAS_LCMS"
+setnames(myTab2,"ES_V1","E2_S")
+setnames(myTab2,"TESTO","TESTO_LCMS")
+setnames(myTab2,"PROG","PROG_LCMS")
+setnames(myTab2,"ES_MS","E2_LCMS")
+setnames(myTab2,"DHEAS","DHEAS_LCMS")
 
 save(myTab,myTab2, file = paste0(path_LIFEprepped,"01_LIFEAdult_filtered.RData"))
 
 #' # Check point 2 ####
 #' ***
-#' Create sample files for each tested scenario
+#' Check hormone levels for outliers. For these plots, I only 
 #' 
-#' - SH on GE (Aliqout must match!)
-#' - genetic on SH (Aliquot must not match - maximize sample size!)
-#' - genetic on GE (Aliquot must not match - maximize sample size!)
-#' 
-dataset1 = copy(myTab2)
-dataset1 = dataset1[GE==T,]
-dataset1 = dataset1[!is.na(CORT_S) & !is.na(TESTO_S) & !is.na(E2_S),]
-matched = match(dataset1$aliquot,myTab$ALIQUOT_GE2)
+myTab3 = copy(myTab2)
+myTab3 = myTab3[!is.na(CORT_S) & !is.na(TESTO_S) & !is.na(E2_S),]
+matched = match(myTab3$SIC,myTab$SIC)
 table(is.na(matched))
-dataset1 = cbind(myTab[matched,],dataset1[,c(5,10,7,13,19,6)])
+myRows = is.element(names(myTab3),c("aliquot","CORT_S","TESTO_S","E2_S","PROG_LCMS","ALDO_LCMS","FSH_S"))
+myRows = seq(1,dim(myTab3)[2],1)[myRows]
+myTab3 = cbind(myTab[matched,],myTab3[,myRows,with = F])
+names(myTab3)[33] = "ALIQUOT_lab"
 
-#' Check hormone levels
-plot5 = ggplot(dataset1, aes(x=AGE, y=E2_S)) +
+#' ## E2 ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=E2_S)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
   xlab("age") + ylab("E2 levels") 
 plot5
 
-#' I will remove the two men with high values (unplausible) and the four women with values above 250
-filt1 = dataset1$group!="premenopausal" & dataset1$E2_S>250
+#' I will remove the man with high values (unplausible) and the four women with values above 400
+filt1 = myTab3$group=="men" & myTab3$E2_S>1000
+filt2 = myTab3$group=="postmenopausal" & myTab3$E2_S>400
 table(filt1)
-dataset1 = dataset1[!filt1,]
-plot5 = ggplot(dataset1, aes(x=AGE, y=E2_S)) +
+table(filt2)
+filt = filt1 | filt2
+myTab3 = myTab3[!filt,]
+plot5 = ggplot(myTab3, aes(x=AGE, y=E2_S)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
@@ -252,36 +274,126 @@ plot5
 
 #' In the premenopausal women, I want to check how the values match the days since last menstruation
 #' 
-plot6 = ggplot(dataset1[group=="premenopausal"], aes(x=D133_daysLastMenst, y=E2_S)) +
+plot6 = ggplot(myTab3[group=="premenopausal"], aes(x=D133_daysLastMenst, y=E2_S)) +
   #facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
   xlab("days since last menstruation") + ylab("E2 levels") 
 plot6
 
-plot6 = ggplot(dataset1[group=="premenopausal"], aes(x=D133_daysLastMenst, y=PROG_LCMS)) +
+plot6 = ggplot(myTab3[group=="premenopausal"], aes(x=D133_daysLastMenst, y=PROG_LCMS)) +
   #facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
   xlab("days since last menstruation") + ylab("P4 levels") 
 plot6
 
-#' How do the other hormones look like
-#' 
-plot5 = ggplot(dataset1, aes(x=as.factor(D126_time), y=CORT_S)) +
+#' ## TT ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=TESTO_S)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("TT levels") 
+plot5
+
+#' I will remove the two men with high values (unplausible)
+filt1 = myTab3$group=="men" & myTab3$TESTO_S>50
+table(filt1)
+filt = filt1 
+myTab3 = myTab3[!filt,]
+plot5 = ggplot(myTab3, aes(x=AGE, y=TESTO_S)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("TT levels") 
+plot5
+
+#' ## CORT ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=CORT_S)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("Cortisol levels") 
+plot5
+
+plot5 = ggplot(myTab3, aes(x=as.factor(D126_time), y=CORT_S)) +
   facet_wrap(~ group,scales = "free") +
   geom_boxplot() +
   theme_bw(base_size = 15) + 
   xlab("Time of blood collection") + ylab("Cortisol levels") 
 plot5
 
-plot5 = ggplot(dataset1, aes(x=D074_BMI, y=TESTO_S)) +
+#' I want to restict the analysis to time between 7:00am and 10:59am
+myTab3 = myTab3[D126_time!=11,]
+
+plot5 = ggplot(myTab3, aes(x=as.factor(D126_time), y=CORT_S)) +
   facet_wrap(~ group,scales = "free") +
-  geom_point() +
+  geom_boxplot() +
   theme_bw(base_size = 15) + 
-  xlab("BMI") + ylab("Testosterone levels") 
+  xlab("Time of blood collection") + ylab("Cortisol levels") 
 plot5
 
+#' # Summary ####
+#' ***
+#' What is my sample size? 
+myTab3[,table(GE, ALIQUOT_GE2==ALIQUOT_lab)]
+myTab3[,GE2 := F]
+myTab3[ALIQUOT_GE2==ALIQUOT_lab & GE==T,GE2 := T]
+
+myTab3[,table(GE2)]
+myTab3[,table(genetics)]
+myTab3[,table(genetics,GE2)]
+
+myTab[, table(GE,genetics)]
+
+#' 
+#' There are 4657 samples with hormone data (**CORT**, **TT**, and **E2**)
+#' - **TWAS**: There are 2183 samples with hormone AND GE data
+#' - **PGS**:  There are 4535 samples with hormone AND genetic data (previous data not stratified for pre- and postmenopausal women)
+#' - **TSLS**: There are 2064 samples with hormone AND genetic AND GE data
+#' - **eQTL**: There are 2301 samples with genetic AND GE data (previous data not stratified for pre- and postmenopausal women)
+#' 
+myTab3[, TWAS := GE2]
+myTab3[, PGS := genetics]
+myTab3[, TSLS := GE2 & genetics]
+
+matched = match(myTab$SIC,myTab3$SIC)
+table(is.na(matched))
+
+myTab[,CORT := myTab3[matched,CORT_S]]
+myTab[,TESTO := myTab3[matched,TESTO_S]]
+myTab[,E2 := myTab3[matched,E2_S]]
+myTab[,TWAS := myTab3[matched,TWAS]]
+myTab[,PGS := myTab3[matched,PGS]]
+myTab[,TSLS := myTab3[matched,TSLS]]
+myTab[,ALIQUOT_SH := myTab3[matched,ALIQUOT_lab]]
+myTab[,eQTL := GE & genetics]
+
+#' Check if there are samples, which are not selected in any setting
+#' 
+myTab[is.na(eQTL),eQTL := F]
+myTab[is.na(TWAS),TWAS := F]
+myTab[is.na(PGS),PGS := F]
+myTab[is.na(eQTL),eQTL := F]
+
+myTab = myTab[TWAS==T | eQTL==T | TSLS==T | PGS==T,]
+
+#' Filter some columns, which I do not need anymore
+#' 
+names(myTab)
+myNames = c("SIC","EDAT","GRUPPE","group",
+            "ALIQUOT","ALIQUOT_genetics","ALIQUOT_GE","ALIQUOT_GE2","ALIQUOT_SH",
+            "GENDER","AGE","D126_time","D126_fasting","D074_BMI","D141_smokeStatus",
+            "D133_daysLastMenst","CORT","TESTO","E2",
+            "TWAS","PGS","TSLS","eQTL")
+colsOut = setdiff(colnames(myTab),myNames)
+myTab[,get("colsOut"):=NULL]
+setcolorder(myTab,myNames)
+dim(myTab)
+
+#' # Save data ####
+#' ***
+save(myTab, file = paste0(path_LIFEprepped,"01_LIFEAdult_filtered_final.RData"))
 
 #' # Session Info ####
 #' ***
