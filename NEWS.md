@@ -2,6 +2,37 @@
 
 Here I want to track my progress
 
+## July 2024
+
+- 05/07/2024: 
+    - updated data prep for LIFE Heart (data download successful on 02/07/2024)
+    - updated data prep for LIFE Adult
+    - TWAS and hierarchical FDR in Adult 
+    - TWAS and hierarchical FDR in Heart 
+    - TWAS ToDo: get genes associated in both Adult and Heart, get Vulcano Plots
+    - downloaded GWAS summary statistics and prepped data for PGS
+
+### Data prep
+
+So far so good. Might want to discuss the decisions for premenopausal women, but the rest should be okay. Maybe I will just evaluate the men and post-menopausal women. 
+
+Check E2: There were about 200 post-menopausal women in LIFE-Adult, who had their ovaries/uterus removed. Given that they are postmenopausal, this might not be critical, and removal can be used as a covariate in the TWAS model. But I did not want to lose all those women. 
+
+### PGS 
+
+Not yet completely sure how the best procedure is. First step is to get the regions of genes coding for steroid hormone pathway genes (using KEGG and biomaRt ensembl). Second step is to extract SNPs in that regions (publicly available summary statistics). Third is to create a score using the effect sizes as weights (different combinations of SNPs / genes). Finally, I check if the scores are associated with the hormones and if they are good instruments. If not, then I have to run a candidate GWAS, and select the best SNPs in LIFE alone... 
+
+Data sources: 
+
+- UKB TT (Ruth et al.), hg38 
+- E2 (Schmitz et al.), binary trait (<LOD), hg38 
+- CORT (Chan and Wu), CORNET + LIFE, hg37 liftover using [Bioconductor](https://bioconductor.org/packages/release/data/annotation/html/SNPlocs.Hsapiens.dbSNP150.GRCh38.html)
+- LIFE-Adult and LIFE-Heart TopMed imputation (hg38)
+
+### TWAS
+
+Fixed matching problem by using the sample annotation table from the QC data.
+
 ## June 2024
 
 - 14/06/2024: 
@@ -15,10 +46,10 @@ Here I want to track my progress
         - possible explanation: admins update ISF2 
         - try again on Monday
     - finished data prep for LIFE-Adult (after applying all sample exclusion criteria): 
-        - **TWAS**: There are 2255 samples with hormone AND GE data
+        - **TWAS**: There are 2183 samples with hormone AND GE data
         - **PGS**:  There are 4535 samples with hormone AND genetic data 
-        - **TSLS**: There are 2133 samples with hormone AND genetic AND GE data
-        - **eQTL**: There are 2373 samples with genetic AND GE data 
+        - **TSLS**: There are 2064 samples with hormone AND genetic AND GE data
+        - **eQTL**: There are 2301 samples with genetic AND GE data 
     - finished data prep for LIFE-Heart (after applying all sample exclusion criteria; **this is done using data from a previous PV (SASHA, 505), and I will update the data as soon as possible, but it should not change much**):
         - **TWAS**: There are 1477 samples with hormone AND GE data
         - **PGS**:  There are 1602 samples with hormone AND genetic data 

@@ -2,7 +2,7 @@
 
 created: 14/06/2024
 
-last updated: 14/06/2024
+last updated: 04/07/2024
 
 ## Overview 
 
@@ -13,6 +13,23 @@ This project is a collaboration of me, Stephen Burgess (MRC BSU, University of C
 ### PGS
 
 Generation of scores using publicly available data (PGS Catalog, previously published GWAS summary statistics); testing the scores for validity in MR analyses by linear regression models. For this step, we will use all individuals of LIFE-Adult and LIFE-Heart with genetic data and available steroid hormone measurements.
+
+Used data sets (so far): 
+
+- Testosterone (TT): [Ruth et al. (2020)](https://pubmed.ncbi.nlm.nih.gov/32042192/)
+    - [GWAS Catalog GCST90012112](https://www.ebi.ac.uk/gwas/studies/GCST90012112) (women)
+    - [GWAS Catalog GCST90012113](https://www.ebi.ac.uk/gwas/studies/GCST90012113) (men)
+- Estradiol (E2): [Schmitz et al. (2021)](https://pubmed.ncbi.nlm.nih.gov/34255042/), binary trait
+    - [GWAS Catalog GCST90020092](https://www.ebi.ac.uk/gwas/studies/GCST90020092) (women)
+    - [GWAS Catalog GCST90020091](https://www.ebi.ac.uk/gwas/studies/GCST90020091) (men)
+- Cortisol (CORT): [Chan and Wu](https://pubmed.ncbi.nlm.nih.gov/38525495/), (CORNET consortium + LIFE)
+    - [figshare](https://figshare.com/articles/dataset/cortisol_cornet_life_combined/26182004) 
+    
+Used gene regions: 
+
+- 62 genes as listed in the [KEGG Steroid hormone biosynthesis pathway](https://www.genome.jp/dbget-bin/www_bget?path:hsa00140)
+- *SHBG* (Sex Hormone Binding Globulin)
+- *SERPINA6* (aka CBG, Corticosteroid Binding Globulin)
 
 Used hormones: 
 
