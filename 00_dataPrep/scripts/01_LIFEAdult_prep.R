@@ -149,21 +149,21 @@ myTab[GENDER==2 & !is.na(D133_yearsLastMenst) & is.na(D133_daysLastMenst) & D133
 myTab[GENDER==2 & is.na(D133_yearsLastMenst) & AGE>60,group := "postmenopausal"]
 
 myTab[,table(is.na(D133_daysLastMenst),AGE<60)]
-myTab[GENDER==2 & !is.na(D133_daysLastMenst) & AGE<60,group := "premenopausal"]
+myTab[GENDER==2 & is.na(group) & AGE<50,group := "premenopausal"]
 
 #' ## Sample exclusion criteria
 #' 
 #' - medication (G03, H02AB, antibaby pill, hormone replacement therapy HRT)
 #' - no blood aliquot available
 #' - sex in gender questionnaire does not match sex in D00153
-#' - women without uterus or ovaries 
+#' - women without uterus or ovaries (only relevant in pre-menopausal women)
 #' - samples with missing data on time of blood draw, smoking or BMI
 #' 
 myTab[,goodSample := T]
 myTab[D038_G03==T | D038_H02AB==T | D133_med_antibaby==1 | D133_med_HRT==1, goodSample := F]
 myTab[is.na(ALIQUOT) & is.na(ALIQUOT_genetics) & is.na(ALIQUOT_GE), goodSample := F]
 myTab[GENDER != D133_sex & !is.na(D133_sex), goodSample := F]
-myTab[D133_removedUterus==1 | D133_removedOvaries==1, goodSample := F]
+myTab[group=="premenopausal" & (D133_removedUterus==1 | D133_removedOvaries==1), goodSample := F]
 myTab[is.na(D074_BMI), goodSample := F]
 myTab[is.na(D141_smokeStatus), goodSample := F]
 myTab[is.na(D126_time), goodSample := F]
@@ -259,12 +259,10 @@ plot5 = ggplot(myTab3, aes(x=AGE, y=E2_S)) +
 plot5
 
 #' I will remove the man with high values (unplausible) and the four women with values above 400
-filt1 = myTab3$group=="men" & myTab3$E2_S>1000
-filt2 = myTab3$group=="postmenopausal" & myTab3$E2_S>400
-table(filt1)
-table(filt2)
-filt = filt1 | filt2
-myTab3 = myTab3[!filt,]
+filt1 = myTab3$group=="men" & myTab3$E2_S>500
+myTab3 = myTab3[!filt1,]
+myTab3[E2_S>500 & group=="postmenopausal",group:="premenopausal"]
+
 plot5 = ggplot(myTab3, aes(x=AGE, y=E2_S)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
@@ -297,7 +295,7 @@ plot5 = ggplot(myTab3, aes(x=AGE, y=TESTO_S)) +
 plot5
 
 #' I will remove the two men with high values (unplausible)
-filt1 = myTab3$group=="men" & myTab3$TESTO_S>50
+filt1 = myTab3$group=="men" & myTab3$TESTO_S>60
 table(filt1)
 filt = filt1 
 myTab3 = myTab3[!filt,]
@@ -347,11 +345,12 @@ myTab3[,table(genetics,GE2)]
 myTab[, table(GE,genetics)]
 
 #' 
-#' There are 4657 samples with hormone data (**CORT**, **TT**, and **E2**)
-#' - **TWAS**: There are 2183 samples with hormone AND GE data
-#' - **PGS**:  There are 4535 samples with hormone AND genetic data (previous data not stratified for pre- and postmenopausal women)
-#' - **TSLS**: There are 2064 samples with hormone AND genetic AND GE data
-#' - **eQTL**: There are 2301 samples with genetic AND GE data (previous data not stratified for pre- and postmenopausal women)
+#' There are 5163 samples with hormone data (**CORT**, **TT**, and **E2**)
+#' 
+#' - **TWAS**: There are 2427 samples with hormone AND GE data
+#' - **PGS**:  There are 5034 samples with hormone AND genetic data (previous data not stratified for pre- and postmenopausal women)
+#' - **TSLS**: There are 2301 samples with hormone AND genetic AND GE data
+#' - **eQTL**: There are 2550 samples with genetic AND GE data (previous data not stratified for pre- and postmenopausal women)
 #' 
 myTab3[, TWAS := GE2]
 myTab3[, PGS := genetics]
@@ -368,6 +367,13 @@ myTab[,PGS := myTab3[matched,PGS]]
 myTab[,TSLS := myTab3[matched,TSLS]]
 myTab[,ALIQUOT_SH := myTab3[matched,ALIQUOT_lab]]
 myTab[,eQTL := GE & genetics]
+myTab[,OUremoved := 0]
+myTab[,OUremoved1 := myTab3[matched,D133_removedUterus]]
+myTab[,OUremoved2 := myTab3[matched,D133_removedOvaries]]
+myTab[(OUremoved1==1 & !is.na(OUremoved1)) | (OUremoved2==1 & !is.na(OUremoved2)), OUremoved := 1]
+myTab[,OUremoved1 := NULL]
+myTab[,OUremoved2 := NULL]
+myTab[GENDER==1,OUremoved := NA]
 
 #' Check if there are samples, which are not selected in any setting
 #' 
@@ -384,7 +390,7 @@ names(myTab)
 myNames = c("SIC","EDAT","GRUPPE","group",
             "ALIQUOT","ALIQUOT_genetics","ALIQUOT_GE","ALIQUOT_GE2","ALIQUOT_SH",
             "GENDER","AGE","D126_time","D126_fasting","D074_BMI","D141_smokeStatus",
-            "D133_daysLastMenst","CORT","TESTO","E2",
+            "D133_daysLastMenst","OUremoved","CORT","TESTO","E2",
             "TWAS","PGS","TSLS","eQTL")
 colsOut = setdiff(colnames(myTab),myNames)
 myTab[,get("colsOut"):=NULL]

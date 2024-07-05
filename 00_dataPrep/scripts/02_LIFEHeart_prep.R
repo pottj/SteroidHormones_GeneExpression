@@ -144,6 +144,8 @@ myTab[GENDER==2,table(is.na(D121_yearsLastMenst),AGE>50)]
 myTab[GENDER==2 & !is.na(D121_yearsLastMenst) & D121_yearsLastMenst>=1 & AGE>50,group := "postmenopausal"]
 myTab[GENDER==2 & is.na(D121_yearsLastMenst) & AGE>60,group := "postmenopausal"]
 
+myTab[GENDER==2 & is.na(group) & AGE<60,group := "premenopausal"]
+
 myTab[,table(is.na(group),GE)]
 myTab[,table(is.na(group),genetics)]
 
@@ -151,14 +153,14 @@ myTab[,table(is.na(group),genetics)]
 #' 
 #' - medication (G03, H02AB, antibaby pill, hormone replacement therapy HRT)
 #' - no blood aliquot available
-#' - women without uterus or ovaries 
+#' - women without uterus or ovaries (only relevant in pre-menopausal women)
 #' - samples with missing data on time of blood draw, smoking or BMI
 #' - cohort AMI or special 
 #' 
 myTab[,goodSample := T]
 myTab[D228_G03==T | D228_H02AB==T | D121_med_antibaby==1 | D121_med_HRT==1, goodSample := F]
 myTab[is.na(ALIQUOT) & is.na(ALIQUOT_genetics) & is.na(ALIQUOT_GE), goodSample := F]
-myTab[D121_removedUterus==1 | D121_removedOvaries==1, goodSample := F]
+myTab[group=="premenopausal" & (D121_removedUterus==1 | D121_removedOvaries==1), goodSample := F]
 myTab[is.na(D157_BMI), goodSample := F]
 myTab[is.na(D222_smokeStatus), goodSample := F]
 myTab[is.na(T991_time), goodSample := F]
@@ -208,41 +210,33 @@ myTab2[,SIC2 := NULL]
 myTab2[,SIC3 := NULL]       
 myTab2 = myTab2[,c(4,1:3)]
 
-#' **IMPORTANT**: at the moment, I have no hormone data! I conntacted the LIFE DM (Yvonne Dietz, mail on 28/06/2024) to check if I missed something. So for the moment, I will use "old" data from a previous LIFE-PV (SASHA project, PV505). As soons as this problem is solved, I will make the necessary changes again. 
-#' 
-#data2 = data[grepl("T",data)]
-data2 = list.files(path = path_LIFEHeart_old, pattern = ".xlsx")
-data2 = data2[grepl("T0117",data2)]
+data2 = data[grepl("T0117",data)]
 
-#' **IMPORTANT 2**: During the LIFE-Heart hormone measurements, there was an update of the LC-MSMS device. Hence, batch 1-4 have different LODs. To make my live simpler, I just kick them all out. 
+#' **IMPORTANT**: During the LIFE-Heart hormone measurements, there was an update of the LC-MSMS device. Hence, batch 1-4 have different LODs. To make my live simpler, I just kick them all out. 
 #' 
 dumTab = foreach(i=1:length(data2))%do%{
   #i=1
-  data3 = data.table(read_excel(paste0(path_LIFEHeart_old,data2[i])))
-  if(grepl("datum",names(data3)[2])==T){
-    parameter1 = gsub("_datum","",names(data3)[2])
+  data3 = data.table(read_excel(paste0(path_LIFEHeart,data2[i])))
+  if(grepl("DATUM",names(data3)[2])==T){
+    parameter1 = gsub("_DATUM","",names(data3)[2])
   }else if(grepl("EDAT",names(data3)[2])==T){
     parameter1 = gsub("_EDAT","",names(data3)[2])
   }
   names(data3) = gsub(paste0(parameter1,"_"),"",names(data3))
-  data3 = data3[batch>=5,]
-  matched = match(myTab2$aliquot,data3$sampling_id)
-  myTab2[,value := data3[matched,num_value]]
+  data3 = data3[BATCH>=5,]
+  matched = match(myTab2$aliquot,data3$SAMPLING_ID)
+  myTab2[,value := data3[matched,NUM_VALUE]]
   myTab2[,value := gsub(",",".",value)]
   myTab2[,value := as.numeric(value)]
   setnames(myTab2,"value",parameter1)
   
 }
 names(myTab2)
-myTab2[,table(GE,genetics,!is.na(cort_lcms))]
-setnames(myTab2,"testo_lsms","TESTO_LCMS")
-setnames(myTab2,"andro_lsms","ANDRO_LCMS")
-setnames(myTab2,"ohp_lsms","OHP17_LCMS")
-setnames(myTab2,"estr_lcms","E2_LCMS")
-setnames(myTab2,"prog_lcms","PROG_LCMS")
-setnames(myTab2,"dheas_lcms","DHEAS_LCMS")
-setnames(myTab2,"aldo_lcms","ALDP_LCMS")
-setnames(myTab2,"cort_lcms","CORT_LCMS")
+myTab2[,table(GE,genetics,!is.na(CORT_LCMS))]
+setnames(myTab2,"TESTO_LSMS","TESTO_LCMS")
+setnames(myTab2,"ANDRO_LSMS","ANDRO_LCMS")
+setnames(myTab2,"OHP_LSMS","OHP17_LCMS")
+setnames(myTab2,"ESTR_LCMS","E2_LCMS")
 
 save(myTab,myTab2, file = paste0(path_LIFEprepped,"02_LIFEHeart_filtered.RData"))
 
@@ -260,6 +254,14 @@ myTab3 = cbind(myTab[matched,],myTab3[,myRows,with = F])
 names(myTab3)[31] = "ALIQUOT_lab"
 
 #' ## E2 ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=E2_LCMS)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("E2 levels") 
+plot5
+
+myTab3[E2_LCMS>1000 & group=="postmenopausal",group:="premenopausal"]
 plot5 = ggplot(myTab3, aes(x=AGE, y=E2_LCMS)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
@@ -320,11 +322,11 @@ myTab3[,table(genetics,GE2)]
 myTab[, table(GE,genetics)]
 
 #' 
-#' There are 1602 samples with hormone data (**CORT**, **TT**, and **E2**)
-#' - **TWAS**: There are 1477 samples with hormone AND GE data
-#' - **PGS**:  There are 1602 samples with hormone AND genetic data 
-#' - **TSLS**: There are 1477 samples with hormone AND genetic AND GE data
-#' - **eQTL**: There are 2483 samples with genetic AND GE data 
+#' There are 1814 samples with hormone data (**CORT**, **TT**, and **E2**)
+#' - **TWAS**: There are 1669 samples with hormone AND GE data
+#' - **PGS**:  There are 1804 samples with hormone AND genetic data 
+#' - **TSLS**: There are 1659 samples with hormone AND genetic AND GE data
+#' - **eQTL**: There are 2803 samples with genetic AND GE data 
 #' 
 myTab3[, TWAS := GE2]
 myTab3[, PGS := genetics]
@@ -341,6 +343,9 @@ myTab[,PGS := myTab3[matched,PGS]]
 myTab[,TSLS := myTab3[matched,TSLS]]
 myTab[,ALIQUOT_SH := myTab3[matched,ALIQUOT_lab]]
 myTab[,eQTL := GE & genetics]
+myTab[,OUremoved := 0]
+myTab[(D121_removedUterus==1 & !is.na(D121_removedUterus)) | (D121_removedOvaries==1 & !is.na(D121_removedOvaries)), OUremoved := 1]
+myTab[GENDER==1,OUremoved := NA]
 
 #' Check if there are samples, which are not selected in any setting
 #' 
@@ -357,7 +362,7 @@ names(myTab)
 myNames = c("SIC","EDAT","GRUPPE","group",
             "ALIQUOT","ALIQUOT_genetics","ALIQUOT_GE","ALIQUOT_SH",
             "GENDER","AGE","T991_time","T991_fasting","D157_BMI","D222_smokeStatus",
-            "CORT","TESTO","E2",
+            "OUremoved","CORT","TESTO","E2",
             "TWAS","PGS","TSLS","eQTL")
 colsOut = setdiff(colnames(myTab),myNames)
 myTab[,get("colsOut"):=NULL]
