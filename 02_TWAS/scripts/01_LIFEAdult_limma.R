@@ -30,7 +30,7 @@ source(func_TWASExtract)
 #' ***
 #' Load the phenotype data (hormones and covariates) and the Expression Set (GE)
 #' 
-load(paste0(path_LIFEprepped,"01_LIFEAdult_filtered_final.RData"))
+load(paste0(path_LIFEprepped,"05_LIFEAdult_filtered_final_PGS.RData"))
 myTab
 
 loaded1 = load(path_LIFEAdult_GE)
@@ -74,7 +74,8 @@ myTab[group=="premenopausal" & is.na(daysLastMenst),daysLastMenst := round(rnorm
 #' 
 temp1 = pData(eset_A1)
 
-toadd = c("CORT","TESTO","E2" ,"activeSmoking","BMI","group","TimeBloodSample","daysLastMenst","OUremoved")
+toadd = c("CORT","TESTO","E2" ,"PGS_TT_same","PGS_E2_same","PGS_CORT_Combined_best",
+          "activeSmoking","BMI","group","TimeBloodSample","daysLastMenst","OUremoved")
 table(is.element(myTab$GE_ID,temp1$sampleID))
 table(is.element(temp1$sampleID,myTab$GE_ID))
 
