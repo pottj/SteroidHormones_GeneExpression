@@ -2,6 +2,14 @@
 
 Here I want to track my progress
 
+## August 2024
+
+- 02/08/2024: I decided to rerun a candidate GWAS for all hormones to use the same genetic data set throughout the project
+    - update data prep again
+    - extract SNPs and run GWAS
+    - PROBLEM with LIFE-Heart - mail to Katrin & Holger 
+    - some tests for the TWAS and 2SLS
+
 ## July 2024
 
 - 05/07/2024: 
