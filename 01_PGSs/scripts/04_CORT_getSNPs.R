@@ -25,9 +25,9 @@
 rm(list = ls())
 time0<-Sys.time()
 
-source("../../SourceFile_forostar.R")
-.libPaths()
+source("../../SourceFile_angmar.R")
 suppressPackageStartupMessages(library(SNPlocs.Hsapiens.dbSNP150.GRCh38))
+.libPaths()
 
 #' # Load data ####
 #' ***
