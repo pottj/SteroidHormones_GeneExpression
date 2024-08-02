@@ -20,7 +20,7 @@
 rm(list = ls())
 time0<-Sys.time()
 
-source("../../SourceFile_forostar.R")
+source("../../SourceFile_angmar.R")
 .libPaths()
 
 #' # Load derivates data ####
@@ -248,10 +248,13 @@ myTab3 = copy(myTab2)
 myTab3 = myTab3[!is.na(CORT_LCMS) & !is.na(TESTO_LCMS) & !is.na(E2_LCMS),]
 matched = match(myTab3$SIC,myTab$SIC)
 table(is.na(matched))
-myRows = is.element(names(myTab3),c("aliquot","CORT_LCMS","TESTO_LCMS","E2_LCMS","PROG_LCMS","ALDO_LCMS"))
+myRows = is.element(names(myTab3),c("aliquot","CORT_LCMS","TESTO_LCMS","E2_LCMS","PROG_LCMS","ALDO_LCMS","DHEAS_LCMS","ANDRO_LCMS","ALDO_LCMS","OHP17_LCMS"))
 myRows = seq(1,dim(myTab3)[2],1)[myRows]
 myTab3 = cbind(myTab[matched,],myTab3[,myRows,with = F])
 names(myTab3)[31] = "ALIQUOT_lab"
+
+myTab3[,QC_ok := T]
+myTab3[,reasonToX := ""]
 
 #' ## E2 ####
 plot5 = ggplot(myTab3, aes(x=AGE, y=E2_LCMS)) +
@@ -261,8 +264,15 @@ plot5 = ggplot(myTab3, aes(x=AGE, y=E2_LCMS)) +
   xlab("age") + ylab("E2 levels") 
 plot5
 
-myTab3[E2_LCMS>1000 & group=="postmenopausal",group:="premenopausal"]
-plot5 = ggplot(myTab3, aes(x=AGE, y=E2_LCMS)) +
+mean = myTab3[,mean(E2_LCMS,na.rm=T),by=group]
+sd = myTab3[,sd(E2_LCMS,na.rm=T),by=group]
+mean$V1 + 6*sd$V1
+
+myTab3[group == "postmenopausal" & E2_LCMS>580,]
+myTab3[E2_LCMS>580 & group=="postmenopausal",QC_ok := F]
+myTab3[E2_LCMS>580 & group=="postmenopausal",reasonToX:="high E2 values - consider changing group?"]
+
+plot5 = ggplot(myTab3[QC_ok==T], aes(x=AGE, y=E2_LCMS)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
@@ -277,12 +287,15 @@ plot5 = ggplot(myTab3, aes(x=AGE, y=TESTO_LCMS)) +
   xlab("age") + ylab("TT levels") 
 plot5
 
-#' I will remove the one woman with high values (unplausible)
-filt1 = myTab3$group!="men" & myTab3$TESTO_LCMS>5
-table(filt1)
-filt = filt1 
-myTab3 = myTab3[!filt,]
-plot5 = ggplot(myTab3, aes(x=AGE, y=TESTO_LCMS)) +
+mean = myTab3[,mean(TESTO_LCMS,na.rm=T),by=group]
+sd = myTab3[,sd(TESTO_LCMS,na.rm=T),by=group]
+mean$V1 + 6*sd$V1
+
+myTab3[group == "postmenopausal" & TESTO_LCMS>4.1,]
+myTab3[TESTO_LCMS>4.1 & group=="postmenopausal",QC_ok := F]
+myTab3[TESTO_LCMS>4.1 & group=="postmenopausal",reasonToX:="high TT values"]
+
+plot5 = ggplot(myTab3[QC_ok==T,], aes(x=AGE, y=TESTO_LCMS)) +
   facet_wrap(~ group,scales = "free") +
   geom_point() +
   theme_bw(base_size = 15) + 
@@ -297,9 +310,15 @@ plot5 = ggplot(myTab3, aes(x=AGE, y=CORT_LCMS)) +
   xlab("age") + ylab("Cortisol levels") 
 plot5
 
-#' I remove the three outliers with high values and the single value for 1pm
-myTab3 = myTab3[CORT_LCMS<1000,]
-myTab3 = myTab3[T991_time<13,]
+mean = myTab3[,mean(CORT_LCMS,na.rm=T),by=group]
+sd = myTab3[,sd(CORT_LCMS,na.rm=T),by=group]
+mean$V1 + 6*sd$V1
+
+myTab3[group == "postmenopausal" & CORT_LCMS>1322,]
+myTab3[group == "premenopausal" & CORT_LCMS>1445,]
+myTab3[group == "men" & CORT_LCMS>1184,]
+myTab3[CORT_LCMS>1184 & group=="men",QC_ok := F]
+myTab3[CORT_LCMS>1184 & group=="men",reasonToX:="high CORT values"]
 
 plot5 = ggplot(myTab3, aes(x=as.factor(T991_time), y=CORT_LCMS)) +
   facet_wrap(~ group,scales = "free") +
@@ -308,8 +327,134 @@ plot5 = ggplot(myTab3, aes(x=as.factor(T991_time), y=CORT_LCMS)) +
   xlab("Time of blood collection") + ylab("Cortisol levels") 
 plot5
 
+myTab3[T991_time==13 | T991_time==6,]
+myTab3[T991_time==13 | T991_time==6,QC_ok:=F]
+myTab3[T991_time==13 | T991_time==6,reasonToX := "time of blood sampling too late/early"]
+
+#' ## A4 ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=ANDRO_LCMS)) +
+  facet_wrap(~ GENDER,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("Androstenedione levels") 
+plot5
+
+mean = myTab3[,mean(ANDRO_LCMS,na.rm=T),by=GENDER]
+sd = myTab3[,sd(ANDRO_LCMS,na.rm=T),by=GENDER]
+mean$V1 + 6*sd$V1
+
+myTab3[ANDRO_LCMS>9.6 & GENDER == 1,]
+myTab3[ANDRO_LCMS>9.6 & GENDER == 1,QC_ok:=F]
+myTab3[ANDRO_LCMS>9.6 & GENDER == 1,reasonToX := "high ANDRO values"]
+
+myTab3[ANDRO_LCMS>8.8 & GENDER == 2,]
+
+plot5 = ggplot(myTab3[QC_ok==T], aes(x=AGE, y=ANDRO_LCMS)) +
+  facet_wrap(~ as.factor(GENDER),scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("Androstenedione levels") 
+plot5
+
+#' ## 17-OHP ####
+plot5 = ggplot(myTab3, aes(x=AGE, y=OHP17_LCMS)) +
+  facet_wrap(~ GENDER,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("17-OHP levels") 
+plot5
+
+mean = myTab3[,mean(OHP17_LCMS,na.rm=T),by=GENDER]
+sd = myTab3[,sd(OHP17_LCMS,na.rm=T),by=GENDER]
+mean$V1 + 6*sd$V1
+
+myTab3[OHP17_LCMS>12.3 & GENDER == 1,]
+myTab3[OHP17_LCMS>12.3 & GENDER == 1 & QC_ok==F,reasonToX := paste(reasonToX,"high 17-OHP values",sep=", ")]
+myTab3[OHP17_LCMS>12.3 & GENDER == 1 & QC_ok==T,reasonToX := "high 17-OHP values"]
+myTab3[OHP17_LCMS>12.3 & GENDER == 1,QC_ok:=F]
+
+myTab3[OHP17_LCMS>5.4 & GENDER == 2,]
+myTab3[OHP17_LCMS>5.4 & GENDER == 2,QC_ok:=F]
+myTab3[OHP17_LCMS>5.4 & GENDER == 2,reasonToX := "high 17-OHP values"]
+
+plot5 = ggplot(myTab3[QC_ok==T], aes(x=AGE, y=OHP17_LCMS)) +
+  facet_wrap(~ as.factor(GENDER),scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("17-OHP levels") 
+plot5
+
+#' ## ALDO ###
+plot5 = ggplot(myTab3, aes(x=AGE, y=ALDO_LCMS)) +
+  facet_wrap(~ GENDER,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("Aldosterone levels") 
+plot5
+
+mean = myTab3[,mean(ALDO_LCMS,na.rm=T),by=GENDER]
+sd = myTab3[,sd(ALDO_LCMS,na.rm=T),by=GENDER]
+mean$V1 + 6*sd$V1
+
+myTab3[ALDO_LCMS>972 & GENDER == 1,]
+myTab3[ALDO_LCMS>972 & GENDER == 1,QC_ok:=F]
+myTab3[ALDO_LCMS>972 & GENDER == 1,reasonToX := "high ALDO values"]
+
+myTab3[ALDO_LCMS>795 & GENDER == 2,]
+myTab3[ALDO_LCMS>795 & GENDER == 2,QC_ok:=F]
+myTab3[ALDO_LCMS>795 & GENDER == 2,reasonToX := "high ALDO values"]
+
+plot5 = ggplot(myTab3[QC_ok==T], aes(x=AGE, y=ALDO_LCMS)) +
+  facet_wrap(~ as.factor(GENDER),scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("ALDO levels") 
+plot5
+
+#' ## DHEAS ###
+plot5 = ggplot(myTab3, aes(x=AGE, y=DHEAS_LCMS)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("DHEA-S levels") 
+plot5
+
+mean = myTab3[,mean(DHEAS_LCMS,na.rm=T),by=group]
+sd = myTab3[,sd(DHEAS_LCMS,na.rm=T),by=group]
+mean$V1 + 6*sd$V1
+
+myTab3[DHEAS_LCMS>9.3 & group == "postmenopausal",]
+myTab3[DHEAS_LCMS>17.1 & group == "men",]
+myTab3[DHEAS_LCMS>14.7 & group == "premenopausal",]
+
+#' ## P4 ###
+plot5 = ggplot(myTab3, aes(x=AGE, y=PROG_LCMS)) +
+  facet_wrap(~ group,scales = "free") +
+  geom_point() +
+  theme_bw(base_size = 15) + 
+  xlab("age") + ylab("E2 levels") 
+plot5
+
+mean = myTab3[,mean(PROG_LCMS,na.rm=T),by=group]
+sd = myTab3[,sd(PROG_LCMS,na.rm=T),by=group]
+mean$V1 + 6*sd$V1
+
+myTab3[group == "men" & PROG_LCMS>1.5,]
+myTab3[group == "men" & PROG_LCMS>1.5 & QC_ok==F,reasonToX := paste(reasonToX,"extreme P4 value",sep=", ")]
+myTab3[group == "men" & PROG_LCMS>1.5 & QC_ok==T,reasonToX := "extreme P4 value"]
+myTab3[group == "men" & PROG_LCMS>1.5,QC_ok := F]
+
+myTab3[group == "postmenopausal" & PROG_LCMS>1.6,]
+myTab3[group == "postmenopausal" & PROG_LCMS>1.6 & QC_ok ==F ,reasonToX := paste(reasonToX,"extreme P4 value",sep=", ")]
+myTab3[group == "postmenopausal" & PROG_LCMS>1.6 & QC_ok==T,reasonToX := "extreme P4 value"]
+myTab3[group == "postmenopausal" & PROG_LCMS>1.6,QC_ok := F]
+
+myTab3[group == "premenopausal" & PROG_LCMS>26,]
+
 #' # Summary ####
 #' ***
+myTab3[, table(reasonToX,group)]
+
 #' What is my sample size? 
 myTab3[,table(GE, ALIQUOT_GE==ALIQUOT_lab)]
 myTab3[,GE2 := F]
@@ -322,10 +467,10 @@ myTab3[,table(genetics,GE2)]
 myTab[, table(GE,genetics)]
 
 #' 
-#' There are 1814 samples with hormone data (**CORT**, **TT**, and **E2**)
-#' - **TWAS**: There are 1669 samples with hormone AND GE data
-#' - **PGS**:  There are 1804 samples with hormone AND genetic data 
-#' - **TSLS**: There are 1659 samples with hormone AND genetic AND GE data
+#' There are 1821 samples with hormone data (**CORT**, **TT**, and **E2**)
+#' - **TWAS**: There are 1676 samples with hormone AND GE data
+#' - **PGS**:  There are 1811 samples with hormone AND genetic data 
+#' - **TSLS**: There are 1666 samples with hormone AND genetic AND GE data
 #' - **eQTL**: There are 2803 samples with genetic AND GE data 
 #' 
 myTab3[, TWAS := GE2]
@@ -338,10 +483,18 @@ table(is.na(matched))
 myTab[,CORT := myTab3[matched,CORT_LCMS]]
 myTab[,TESTO := myTab3[matched,TESTO_LCMS]]
 myTab[,E2 := myTab3[matched,E2_LCMS]]
+myTab[,DHEAS := myTab3[matched,DHEAS_LCMS]]
+myTab[,PROG := myTab3[matched,PROG_LCMS]]
+myTab[,OHP17 := myTab3[matched,OHP17_LCMS]]
+myTab[,ANDRO := myTab3[matched,ANDRO_LCMS]]
+myTab[,ALDO := myTab3[matched,ALDO_LCMS]]
 myTab[,TWAS := myTab3[matched,TWAS]]
 myTab[,PGS := myTab3[matched,PGS]]
 myTab[,TSLS := myTab3[matched,TSLS]]
 myTab[,ALIQUOT_SH := myTab3[matched,ALIQUOT_lab]]
+myTab[,QC_ok := myTab3[matched,QC_ok]]
+myTab[,reasonToX := myTab3[matched,reasonToX]]
+
 myTab[,eQTL := GE & genetics]
 myTab[,OUremoved := 0]
 myTab[(D121_removedUterus==1 & !is.na(D121_removedUterus)) | (D121_removedOvaries==1 & !is.na(D121_removedOvaries)), OUremoved := 1]
@@ -362,8 +515,8 @@ names(myTab)
 myNames = c("SIC","EDAT","GRUPPE","group",
             "ALIQUOT","ALIQUOT_genetics","ALIQUOT_GE","ALIQUOT_SH",
             "GENDER","AGE","T991_time","T991_fasting","D157_BMI","D222_smokeStatus",
-            "OUremoved","CORT","TESTO","E2",
-            "TWAS","PGS","TSLS","eQTL")
+            "OUremoved","CORT","TESTO","E2","DHEAS","PROG","OHP17","ANDRO","ALDO",
+            "TWAS","PGS","TSLS","eQTL","QC_ok","reasonToX")
 colsOut = setdiff(colnames(myTab),myNames)
 myTab[,get("colsOut"):=NULL]
 setcolorder(myTab,myNames)
