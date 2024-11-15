@@ -53,9 +53,16 @@ stopifnot(myTab$GE_ID == PhenoMat$sampleID)
 
 #' # Loop ####
 #' ***
+load("../../02_TWAS/results/01_TWAS_SummaryStatistics_LIFEAdult_hierFDR.RData")
+myTab2 = myTab2[hierFDR==T,]
+filt = is.element(rownames(GEmat),myTab2$PROBE_ID)
+table(filt)
+GEmat = GEmat[filt,]
 
+counter = seq(1,10000,100)
 dumTab = foreach(i = 1:dim(GEmat)[1])%do%{
   #i=1
+  if(i %in% counter) message("Working on probe ",i)
   
   myGE = GEmat[i,]
   dat1 = copy(PhenoMat)
@@ -91,6 +98,13 @@ dumTab = foreach(i = 1:dim(GEmat)[1])%do%{
 }
 TSLS_Tab_Adult = rbindlist(dumTab)
 TSLS_Tab_Adult[,min(pval_2SLS),by=c("phenotype","sex")]
+
+test = copy(TSLS_Tab_Adult)
+test = test[pval_2SLS<0.05,]
+
+#' # Save results ####
+#' ***
+save(TSLS_Tab_Adult,file = "../results/01_TSLS_Adult.RData")
 
 #' # Session Info ####
 #' ***
