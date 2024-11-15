@@ -19,11 +19,12 @@
 #' ***
 rm(list = ls())
 time0<-Sys.time()
+server = "angmar"
 
-source("../../SourceFile_angmar.R")
+source("../../SourceFile.R")
 .libPaths()
 
-#' # Load derivates data ####
+#' # Load derivatives data ####
 #' ***
 data = list.files(path = path_LIFEHeart, pattern = ".xlsx")
 
@@ -170,7 +171,7 @@ myTab[,table(goodSample,group)]
 
 #' ## Save and filter
 #' 
-save(myTab,file = paste0(path_LIFEprepped,"02_LIFEHeart_unfiltered.RData"))
+save(myTab,file = paste0(path_LIFEprepped,"temp/02_LIFEHeart_unfiltered.RData"))
 
 myTab = myTab[goodSample == T,]
 
@@ -238,7 +239,7 @@ setnames(myTab2,"ANDRO_LSMS","ANDRO_LCMS")
 setnames(myTab2,"OHP_LSMS","OHP17_LCMS")
 setnames(myTab2,"ESTR_LCMS","E2_LCMS")
 
-save(myTab,myTab2, file = paste0(path_LIFEprepped,"02_LIFEHeart_filtered.RData"))
+save(myTab,myTab2, file = paste0(path_LIFEprepped,"temp/02_LIFEHeart_filtered.RData"))
 
 #' # Check point 2 ####
 #' ***
@@ -524,7 +525,7 @@ dim(myTab)
 
 #' # Save data ####
 #' ***
-save(myTab, file = paste0(path_LIFEprepped,"02_LIFEHeart_filtered_final.RData"))
+save(myTab, file = paste0(path_LIFEprepped,"phenotypes/Heart_QC.RData"))
 
 #' # Session Info ####
 #' ***

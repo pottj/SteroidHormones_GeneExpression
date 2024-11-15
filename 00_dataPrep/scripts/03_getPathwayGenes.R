@@ -21,17 +21,20 @@
 #' 
 #' Finally, I collapse neighboring genes (most likely when positioned at the same cytoband).
 #'  
+#' **Note**: depending on admin settings, this script might not run in RStudio as it needs the server to connect to Ensembl. 
+#'  
 #' # Initialize ####
 #' ***
 rm(list = ls())
 time0<-Sys.time()
+server = "angmar"
 
-source("../../SourceFile_forostar.R")
+source("../../SourceFile.R")
 .libPaths()
 
 #' # Load gene list ####
 #' ***
-PathwayGenes = fread("../temp/230702_KEGG_genes_hsa00140.txt")
+PathwayGenes = fread(path_PathwayGenesKEGG)
 PathwayGenes[1:5,]
 
 SHBG = data.table(KEGG_entryID = 6462,
@@ -48,7 +51,7 @@ PathwayGenes = rbind(PathwayGenes,SHBG,CBG,fill=T)
 
 #' # Get gene information ####
 #' ***
-#ensembl_37 = useEnsembl(biomart="ensembl", dataset = "hsapiens_gene_ensembl", GRCh=37)
+biomartCacheClear()
 ensembl_38 = useEnsembl(biomart="ensembl", dataset = "hsapiens_gene_ensembl")
 
 myWishList = c('ensembl_gene_id', "description", 
@@ -60,7 +63,7 @@ myWishList = c('ensembl_gene_id', "description",
 all_genes_b38 = getBM(attributes=myWishList, mart = ensembl_38)
 setDT(all_genes_b38)
 all_genes_b38 = all_genes_b38[hgnc_symbol %in% PathwayGenes$gene,]
-write.table(all_genes_b38, "../temp/01_biomart_genes_GRCh38.txt")
+write.table(all_genes_b38, "../results/03_biomart_genes_GRCh38.txt",row.names = F)
 
 all_genes_b38[ ,table(chromosome_name)]
 all_genes_b38 = all_genes_b38[chromosome_name %in% c(1:22,"X"),]
@@ -113,7 +116,7 @@ PathwayGenes[,genes := test7[matched,V1]]
 
 #' # Save ####
 #' ***
-save(PathwayGenes, file="../results/01_PathwayGenes_byGene.RData")
+save(PathwayGenes, file="../results/03_PathwayGenes_byGene.RData")
 
 PathwayGenes_filt = copy(PathwayGenes)
 myNames = c("cytoband", "genes", "CHR", "CHR2", "region_start_collapsed", "region_end_collapsed", "range")
@@ -123,7 +126,19 @@ setcolorder(PathwayGenes_filt,myNames)
 dim(PathwayGenes_filt)
 PathwayGenes_filt = PathwayGenes_filt[!duplicated(cytoband),]
 
-save(PathwayGenes_filt, file="../results/01_PathwayGenes_byCytoband.RData")
+#' There is still one overlapping region: 04q13.2 - 04q13.3 
+#' 
+#' I will merge them manually.
+PathwayGenes_filt[cytoband %in% c("04q13.2","04q13.3")]
+PathwayGenes_filt[cytoband=="04q13.2",genes := paste0(genes, " | UGT2B4 | UGT2A1 | UGT2A2 | SULT1E1")]
+PathwayGenes_filt[cytoband=="04q13.2",region_end_collapsed := 70110145]
+PathwayGenes_filt[cytoband=="04q13.2",range := region_end_collapsed - region_start_collapsed]
+PathwayGenes_filt[cytoband %in% c("04q13.2","04q13.3")]
+PathwayGenes_filt[cytoband=="04q13.2",cytoband := "04q13.2-3"]
+PathwayGenes_filt = PathwayGenes_filt[!is.element(cytoband,"04q13.3"),]
+PathwayGenes_filt[cytoband %in% c("04q13.2-3")]
+
+save(PathwayGenes_filt, file="../results/03_PathwayGenes_byCytoband.RData")
 
 #' # Session Info ####
 #' ***
