@@ -2,6 +2,15 @@
 
 Here I want to track my progress
 
+## November, 15th, 2024
+
+**PGS**:
+
+- updated the scores using genome-wide SNPs, we only have **strong instruments for TT** in men and women 
+- rerun scores using SNPs within/near steroid hormone pathway enzymes encoding genes
+- run PGS special for CORT: different p-value thresholds, using gene dosage matrix not in PLINK but in R
+- To do: final selection of score per hormone, using LIFE Adult as main analysis
+
 ## August 2024
 
 - 02/08/2024: I decided to rerun a candidate GWAS for all hormones to use the same genetic data set throughout the project
