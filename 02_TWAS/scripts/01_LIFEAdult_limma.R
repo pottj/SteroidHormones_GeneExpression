@@ -1,5 +1,5 @@
 #' ---
-#' title: "Run limma in LIFE-Adult"
+#' title: "TWAS - LIFE-Adult"
 #' subtitle: "MR of SH on GE"
 #' author: "Janne Pott"
 #' date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
@@ -19,8 +19,9 @@
 #' ***
 rm(list = ls())
 time0<-Sys.time()
+server = "angmar"
 
-source("../../SourceFile_forostar.R")
+source("../../SourceFile.R")
 .libPaths()
 
 source(func_TWAS)
@@ -30,7 +31,7 @@ source(func_TWASExtract)
 #' ***
 #' Load the phenotype data (hormones and covariates) and the Expression Set (GE)
 #' 
-load(paste0(path_LIFEprepped,"05_LIFEAdult_filtered_final_PGS.RData"))
+load(paste0(path_LIFEprepped,"phenotypes/Adult_QC.RData"))
 myTab
 
 loaded1 = load(path_LIFEAdult_GE)
@@ -65,8 +66,6 @@ setnames(myTab,"D133_daysLastMenst","daysLastMenst")
 
 myTab = myTab[TWAS==T,]
 myTab[,table(group, is.na(daysLastMenst))]
-myTab[group=="postmenopausal",daysLastMenst := NA]
-myTab[group=="premenopausal" & is.na(daysLastMenst),daysLastMenst := round(rnorm(n=54,mean=14,sd=4),0)]
 
 #' # Merge data ####
 #' ***
@@ -74,7 +73,7 @@ myTab[group=="premenopausal" & is.na(daysLastMenst),daysLastMenst := round(rnorm
 #' 
 temp1 = pData(eset_A1)
 
-toadd = c("CORT","TESTO","E2" ,"PGS_TT_same","PGS_E2_same","PGS_CORT_Combined_best",
+toadd = c("CORT","TESTO","E2" ,
           "activeSmoking","BMI","group","TimeBloodSample","daysLastMenst","OUremoved")
 table(is.element(myTab$GE_ID,temp1$sampleID))
 table(is.element(temp1$sampleID,myTab$GE_ID))
@@ -102,212 +101,132 @@ dim(eset_SH)
 
 #' save filtered eSet
 #' 
-save(eset_SH, file = paste0(path_LIFEprepped,"eSet_Adult_TWAS.RData"))
+save(eset_SH, file = paste0(path_LIFEprepped,"transcriptomics/Adult_eSet.RData"))
 
 #' # Run limma #### 
 #' ***
-SHs = c("CORT","TESTO","E2")
+SHs_sex = c("TESTO","E2")
+SHs_comb = c("CORT")
 
 #' ## Men ####
-gx_assoc_men_filt = calculateLimma(todovars = SHs, 
+gx_assoc_men_filt = calculateLimma(todovars = SHs_sex, 
                                    conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample"), 
                                    eset = eset_SH[,eset_SH$group=="men"], 
                                    doscale = T) 
 
-gx_assoc_men_filt2= calculateLimma(todovars = SHs, 
+gx_assoc_men_filt2= calculateLimma(todovars = SHs_sex, 
                                    conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","BMI"), 
                                    eset = eset_SH[,eset_SH$group=="men"], 
-                                   doscale = T) 
-
-#' ## Postmenopausal women ####
-gx_assoc_postWomen_filt = calculateLimma(todovars = SHs, 
-                                   conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample"), 
-                                   eset = eset_SH[,eset_SH$group=="postmenopausal"], 
-                                   doscale = T) 
-
-gx_assoc_postWomen_filt2= calculateLimma(todovars = SHs, 
-                                   conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","BMI"), 
-                                   eset = eset_SH[,eset_SH$group=="postmenopausal"], 
-                                   doscale = T) 
-
-#' ## Premenopausal women ####
-gx_assoc_preWomen_filt = calculateLimma(todovars = SHs, 
-                                   conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","daysLastMenst"), 
-                                   eset = eset_SH[,eset_SH$group=="premenopausal"], 
-                                   doscale = T) 
-
-gx_assoc_preWomen_filt2= calculateLimma(todovars = SHs, 
-                                   conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","daysLastMenst","BMI"), 
-                                   eset = eset_SH[,eset_SH$group=="premenopausal"], 
                                    doscale = T) 
 
 #' ## Women ####
-gx_assoc_Women_filt = calculateLimma(todovars = SHs, 
+gx_assoc_women_filt = calculateLimma(todovars = SHs_sex, 
                                         conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","OUremoved","group"), 
                                         eset = eset_SH[,eset_SH$group!="men"], 
                                         doscale = T) 
 
-gx_assoc_Women_filt2= calculateLimma(todovars = SHs, 
+gx_assoc_women_filt2= calculateLimma(todovars = SHs_sex, 
                                         conf = c("AGE","LYP","MOP","activeSmoking","TimeBloodSample","OUremoved","group","BMI"), 
                                         eset = eset_SH[,eset_SH$group!="men"], 
                                         doscale = T) 
 
-#' ## All ####
-gx_assoc_all_filt = calculateLimma(todovars = SHs, 
-                                     conf = c("SEX","AGE","LYP","MOP","activeSmoking","TimeBloodSample"), 
+#' ## Sex-combined ####
+gx_assoc_comb_filt = calculateLimma(todovars = SHs_comb, 
+                                     conf = c("group","AGE","LYP","MOP","activeSmoking","TimeBloodSample"), 
                                      eset = eset_SH, 
                                      doscale = T) 
 
-gx_assoc_all_filt2= calculateLimma(todovars = SHs, 
-                                     conf = c("SEX","AGE","LYP","MOP","activeSmoking","TimeBloodSample","BMI"), 
+gx_assoc_comb_filt2= calculateLimma(todovars = SHs_comb, 
+                                     conf = c("group","AGE","LYP","MOP","activeSmoking","TimeBloodSample","BMI"), 
                                      eset = eset_SH, 
                                      doscale = T) 
 
 #' # Save lists ####
 #' ***
-save(gx_assoc_men_filt, file="../results/01_TWAS_Adult_men.RData")
-save(gx_assoc_men_filt2, file="../results/01_TWAS_Adult_men_BMIadj.RData")
+save(gx_assoc_men_filt, file="../temp/01_TWAS_Adult_men.RData")
+save(gx_assoc_men_filt2, file="../temp/01_TWAS_Adult_men_BMIadj.RData")
 
-save(gx_assoc_postWomen_filt, file="../results/01_TWAS_Adult_postWomen.RData")
-save(gx_assoc_postWomen_filt2, file="../results/01_TWAS_Adult_postWomen_BMIadj.RData")
+save(gx_assoc_women_filt, file="../temp/01_TWAS_Adult_women.RData")
+save(gx_assoc_women_filt2, file="../temp/01_TWAS_Adult_women_BMIadj.RData")
 
-save(gx_assoc_preWomen_filt, file="../results/01_TWAS_Adult_preWomen.RData")
-save(gx_assoc_preWomen_filt2, file="../results/01_TWAS_Adult_preWomen_BMIadj.RData")
-
-save(gx_assoc_Women_filt, file="../results/01_TWAS_Adult_women.RData")
-save(gx_assoc_Women_filt2, file="../results/01_TWAS_Adult_women_BMIadj.RData")
-
-save(gx_assoc_all_filt, file="../results/01_TWAS_Adult_all.RData")
-save(gx_assoc_all_filt2, file="../results/01_TWAS_Adult_all_BMIadj.RData")
+save(gx_assoc_comb_filt, file="../temp/01_TWAS_Adult_comb.RData")
+save(gx_assoc_comb_filt2, file="../temp/01_TWAS_Adult_comb_BMIadj.RData")
 
 #' # Extract Summary statistics
 #' ***
 #' I do not like lists - I want a data table!
 #' 
-#' ## No BMI adjustment ####
+ToDoList = data.table(hormones = c(SHs_sex,SHs_sex,SHs_comb),
+                      setting = c("men","men","women","women","combined"))
 
-dumTab = foreach(i=1:length(SHs))%do%{
+dumTab = foreach(i=1:dim(ToDoList)[1])%do%{
   #i=1
-  message("Working on i=",i,", steroid hormone ",SHs[i])
-  mySH = SHs[i]
-  tab_1 = myExtractionFunction(gx_assoc_preWomen_filt,mySH,"women_pre")
-  tab_2 = myExtractionFunction(gx_assoc_postWomen_filt,mySH,"women_post")
-  tab_3 = myExtractionFunction(gx_assoc_Women_filt,mySH,"women")
-  tab_4 = myExtractionFunction(gx_assoc_men_filt,mySH,"men")
-  tab_5 = myExtractionFunction(gx_assoc_all_filt,mySH,"all")
-  tab_adult = rbind(tab_1,tab_2,tab_3,tab_4,tab_5)
-  tab_adult
+  if(ToDoList[i,setting] == "women"){
+    tab1 = myExtractionFunction(data=gx_assoc_women_filt,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+    tab2 = myExtractionFunction(data=gx_assoc_women_filt2,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+  }else if(ToDoList[i,setting] == "men"){
+    tab1 = myExtractionFunction(data=gx_assoc_men_filt,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+    tab2 = myExtractionFunction(data=gx_assoc_men_filt2,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+  }else if(ToDoList[i,setting] == "combined"){
+    tab1 = myExtractionFunction(data=gx_assoc_comb_filt,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+    tab2 = myExtractionFunction(data=gx_assoc_comb_filt2,SH = ToDoList[i,hormones],set = ToDoList[i,setting])
+  }
+  tab1[,model:="noBMIadj"]
+  tab2[,model:="BMIadj"]
+  tab = rbind(tab1,tab2)
+  tab
 }
 
 Adult = rbindlist(dumTab)  
 Adult[,study:="Adult"]
-Adult[,uniqueID := paste(phenotype,setting,PROBE_ID,sep="::")]
+Adult[,uniqueID := paste(phenotype,setting,model,PROBE_ID,sep="::")]
 table(duplicated(Adult$uniqueID))
 
 names(Adult)
 
-Adult = Adult[,c(18,22,23,24,1,2,14,20,13,19,21,15:17,9:12,3:8)]
+Adult = Adult[,c(18,22,23,24,25,1,2,14,20,13,19,21,15:17,9:12,3:8)]
 Adult
 
 save(Adult, file = "../results/01_TWAS_SummaryStatistics_LIFEAdult.RData")
 
-outfn = paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult.txt")
-fwrite(Adult, file = outfn,quote = F,sep="\t")
-R.utils::gzip(paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult.txt"), 
-              destname = paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult.txt.gz"))
-
-#' ## BMI adjustment ####
-
-dumTab = foreach(i=1:length(SHs))%do%{
-  #i=1
-  message("Working on i=",i,", steroid hormone ",SHs[i])
-  mySH = SHs[i]
-  tab_1 = myExtractionFunction(gx_assoc_preWomen_filt2,mySH,"women_pre")
-  tab_2 = myExtractionFunction(gx_assoc_postWomen_filt2,mySH,"women_post")
-  tab_3 = myExtractionFunction(gx_assoc_Women_filt2,mySH,"women")
-  tab_4 = myExtractionFunction(gx_assoc_men_filt2,mySH,"men")
-  tab_5 = myExtractionFunction(gx_assoc_all_filt2,mySH,"all")
-  tab_adult = rbind(tab_1,tab_2,tab_3,tab_4,tab_5)
-  tab_adult
-}
-
-Adult2 = rbindlist(dumTab)  
-Adult2[,study:="Adult_BMIadj"]
-Adult2[,uniqueID := paste(phenotype,setting,PROBE_ID,sep="::")]
-table(duplicated(Adult2$uniqueID))
-
-names(Adult2)
-
-Adult2 = Adult2[,c(18,22,23,24,1,2,14,20,13,19,21,15:17,9:12,3:8)]
-Adult2
-
-save(Adult2, file = "../results/01_TWAS_SummaryStatistics_LIFEAdult_BMIadj.RData")
-
-outfn = paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult_BMIadj.txt")
-fwrite(Adult2, file = outfn,quote = F,sep="\t")
-R.utils::gzip(paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult_BMIadj.txt"), 
-              destname = paste0("../results/01_TWAS_SummaryStatistics_LIFEAdult_BMIadj.txt.gz"))
-
 #' # Hierarchical FDR ####
 #' ***
 myTab = copy(Adult)
-myTab[,table(setting,phenotype)]
+myTab[,table(setting,phenotype,model)]
+myTab[,trait := paste(phenotype,setting,model,sep="_")]
+myTab[,table(trait)]
 
-mySettings = unique(myTab$setting)
+myFDR = addHierarchFDR(pvalues = myTab$P.Value, categs = myTab$trait)
+k = length(unique(myFDR[hierarch_fdr5proz==T,category]))
+n = length(unique(myFDR[,category]))
+table(myFDR$hierarch_fdr5proz)
+myTab[,P.Value.adj1 := myFDR$fdr_level1]
+myTab[,hierFDR := myFDR$hierarch_fdr5proz]
+myTab[,P.Value.adj2 := myFDR$fdr_level1 * n / k]
+myTab[, table(hierFDR,trait)]
 
-dumTab = foreach(i = 1:length(mySettings))%do%{
+save(myTab, file = "../results/01_TWAS_SummaryStatistics_LIFEAdult_hierFDR.RData")
+
+#' # Save per trait ####
+#' ***
+#' I plan to upload the TWAS summary statistics per trait. Hence, I want a text file per hormone - setting - model
+#' 
+outdir = "../results/01_Adult_SummaryStatistics/"
+
+myTraits = unique(myTab$trait)
+
+for(i in 1:length(myTraits)){
   #i=1
-  mySetting = mySettings[i]
   myTab2 = copy(myTab)
-  myTab2 = myTab2[setting == mySetting,]
+  myTab2 = myTab2[trait == myTraits[i],]
+  myTab2 = myTab2[,c(1:3,6:14,27,29,28,16:25)]
+  setorder(myTab2,ilmn_chr_hg19,ilmn_start_hg19)
   
-  myFDR = addHierarchFDR(pvalues = myTab2$P.Value, categs = myTab2$phenotype)
-  k = length(unique(myFDR[hierarch_fdr5proz==T,category]))
-  n = length(unique(myFDR[,category]))
-  table(myFDR$hierarch_fdr5proz)
-  myTab2[,P.Value.adj1 := myFDR$fdr_level1]
-  myTab2[,hierFDR := myFDR$hierarch_fdr5proz]
-  myTab2[,P.Value.adj2 := myFDR$fdr_level1 * n / k]
-  myTab2
-}
-
-myTab2 = rbindlist(dumTab)
-myTab2[,table(hierFDR,P.Value.adj1<0.05)]
-myTab2[,table(hierFDR,P.Value.adj2<0.05)]
-myTab2[,table(hierFDR,setting)]
-myTab2[hierFDR==T,table(phenotype,setting)]
-
-save(myTab2, file = "../results/01_TWAS_SummaryStatistics_LIFEAdult_hierFDR.RData")
-
-#' ## BMI adjusted ####
-myTab = copy(Adult2)
-myTab[,table(setting,phenotype)]
-
-mySettings = unique(myTab$setting)
-
-dumTab = foreach(i = 1:length(mySettings))%do%{
-  #i=1
-  mySetting = mySettings[i]
-  myTab2 = copy(myTab)
-  myTab2 = myTab2[setting == mySetting,]
+  outfn = paste0(outdir,myTraits[i],".txt")
+  fwrite(myTab2, file = outfn,quote = F,sep="\t")
+  gzip(outfn,destname = paste0(outfn, ".gz"))
   
-  myFDR = addHierarchFDR(pvalues = myTab2$P.Value, categs = myTab2$phenotype)
-  k = length(unique(myFDR[hierarch_fdr5proz==T,category]))
-  n = length(unique(myFDR[,category]))
-  table(myFDR$hierarch_fdr5proz)
-  myTab2[,P.Value.adj1 := myFDR$fdr_level1]
-  myTab2[,hierFDR := myFDR$hierarch_fdr5proz]
-  myTab2[,P.Value.adj2 := myFDR$fdr_level1 * n / k]
-  myTab2
 }
-
-myTab3 = rbindlist(dumTab)
-myTab3[,table(hierFDR,P.Value.adj1<0.05)]
-myTab3[,table(hierFDR,P.Value.adj2<0.05)]
-myTab3[,table(hierFDR,setting)]
-myTab3[hierFDR==T,table(phenotype,setting)]
-
-save(myTab3, file = "../results/01_TWAS_SummaryStatistics_LIFEAdult_BMIadj_hierFDR.RData")
 
 #' # Session Info ####
 #' ***
