@@ -70,38 +70,41 @@ system(myCall3)
 
 #' # Heart ####
 #' ***
+#' Note: For Heart, I only generate the bad files, as I want to use the same SNPs for the score as in Adult. Study-specific pruning might prevent that from happening!
+#' 
 #' Step 1: standard QC
 
-myCall4 = paste0(path_plink2,
-                 " --pfile ",path_LIFEHeart_Genetics,
-                 " --extract ../results/01_SNPList_raw.txt",
-                 " --maf 0.01",
-                 " --hwe 1e-6",
-                 " --geno 0.01",
-                 " --mind 0.01", 
-                 " --mach-r2-filter 0.8 2",
-                 " --write-snplist", 
-                 " --make-just-fam", 
-                 " --out ../results/02_PLINK_prep/Heart_QC_SNPList")
-myCall4
-system(myCall4)
+# myCall4 = paste0(path_plink2,
+#                  " --pfile ",path_LIFEHeart_Genetics,
+#                  " --extract ../results/01_SNPList_raw.txt",
+#                  " --maf 0.01",
+#                  " --hwe 1e-6",
+#                  " --geno 0.01",
+#                  " --mind 0.01", 
+#                  " --mach-r2-filter 0.8 2",
+#                  " --write-snplist", 
+#                  " --make-just-fam", 
+#                  " --out ../results/02_PLINK_prep/Heart_QC_SNPList")
+# myCall4
+# system(myCall4)
 
 #' Step 2: pruning
 
-myCall5 = paste0(path_plink2,
-                 " --pfile ",path_LIFEHeart_Genetics,
-                 " --extract ../results/02_PLINK_prep/Heart_QC_SNPList.snplist",
-                 " --keep ../results/02_PLINK_prep/Heart_QC_SNPList.fam", 
-                 " --indep-pairwise 200 50 0.25", 
-                 " --out ../results/02_PLINK_prep/Heart_QC_Pruning")
-myCall5
-system(myCall5)
+# myCall5 = paste0(path_plink2,
+#                  " --pfile ",path_LIFEHeart_Genetics,
+#                  " --extract ../results/02_PLINK_prep/Heart_QC_SNPList.snplist",
+#                  " --keep ../results/02_PLINK_prep/Heart_QC_SNPList.fam", 
+#                  " --indep-pairwise 200 50 0.25", 
+#                  " --out ../results/02_PLINK_prep/Heart_QC_Pruning")
+# myCall5
+# system(myCall5)
 
 #' Step 3: make bed-file for later use (stored in dataQC, not tracked)
 #' 
 myCall6 = paste0(path_plink2,
                  " --pfile ",path_LIFEHeart_Genetics,
-                 " --extract ../results/02_PLINK_prep/Heart_QC_Pruning.prune.in",
+                 # " --extract ../results/02_PLINK_prep/Heart_QC_Pruning.prune.in",
+                 " --extract ../results/02_PLINK_prep/Adult_QC_Pruning.prune.in",
                  " --make-bed",
                  " --out ",path_LIFEprepped,"genetics/Heart_QC")
 myCall6

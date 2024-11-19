@@ -15,7 +15,7 @@
 #' ***
 #' I want to load all the scores per study and create one score file. As template I use the respective "samplesAsImputed" file, as it also contains the genetic PCs. 
 #' 
-#' Then I load the phenotype files, and perform linear regression of the scores on the respecive outcome in the respective subset of samples, using either no adjustment, or adjusting for age, BMI, smoking, and the PCs. 
+#' Then I load the phenotype files, and perform linear regression of the scores on the respective outcome in the respective subset of samples, using either no adjustment, or adjusting for age, BMI, smoking, and the PCs. 
 #' 
 #' # Initialize ####
 #' ***
@@ -150,7 +150,11 @@ dumTab1 = foreach(i = 1:length(myScores))%do%{
   
   # Step 4: do linear regression
   model0 = lm(log(hormone) ~ GENDER + AGE + D126_time + log(D074_BMI), data = data)
-  model2 = lm(log(hormone) ~ score + GENDER + AGE + D126_time + log(D074_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  if(setting != "men"){
+    model2 = lm(log(hormone) ~ score + GENDER + AGE + group + D126_time + log(D074_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  }else{
+    model2 = lm(log(hormone) ~ score + GENDER + AGE + D126_time + log(D074_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  }
   
   # Step 5: summarize results
   null.r2 = summary(model0)$r.squared
@@ -209,7 +213,11 @@ dumTab2 = foreach(i = 1:length(myScores))%do%{
   
   # Step 4: do linear regression
   model0 = lm(log(hormone) ~ GENDER + AGE + T991_time + log(D157_BMI), data = data)
-  model2 = lm(log(hormone) ~ score + GENDER + AGE + T991_time + log(D157_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  if(setting != "men"){
+    model2 = lm(log(hormone) ~ score + GENDER + AGE + group + T991_time + log(D157_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  }else{
+    model2 = lm(log(hormone) ~ score + GENDER + AGE + T991_time + log(D157_BMI) + PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10, data = data)
+  }
   
   # Step 5: summarize results
   null.r2 = summary(model0)$r.squared

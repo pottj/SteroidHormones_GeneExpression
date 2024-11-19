@@ -1,5 +1,5 @@
 #' ---
-#' title: "PGS - Analysing PGS and Visualizing results - CORT special"
+#' title: "PGS - Selecting the scores"
 #' subtitle: "MR of SH on GE"
 #' author: "Janne Pott"
 #' date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
@@ -13,9 +13,6 @@
 #'
 #' # Introduction ####
 #' ***
-#' I want to load all the scores per study and create one score file. As template I use the respective "samplesAsImputed" file, as it also contains the genetic PCs. 
-#' 
-#' Then I load the phenotype files, and perform linear regression of the scores on the respective outcome in the respective subset of samples, using either no adjustment, or adjusting for age, BMI, smoking, and the PCs. 
 #' 
 #' # Initialize ####
 #' ***
@@ -26,50 +23,55 @@ server = "angmar"
 source("../../SourceFile.R")
 .libPaths()
 
-#' # Create input parameters ####
+#' # Load files ####
 #' ***
-files = list.files(path = path_SumStats_QC)
-files = files[grepl(".gz",files)]
-files = files[grepl("SERPINA6",files)]
-studies = c("Adult","Heart")
+load(paste0(path_LIFEprepped,"genetics/Adult_PGS.RData"))
+myTab_Adult_PGS_genomewide = copy(SamplesAsImputed)
+
+load(paste0(path_LIFEprepped,"genetics/Heart_PGS.RData"))
+myTab_Heart_PGS_genomewide = copy(SamplesAsImputed)
+
+load(paste0(path_LIFEprepped,"genetics/Adult_PGS_pathway.RData"))
+myTab_Adult_PGS_pathway = copy(SamplesAsImputed)
+
+load(paste0(path_LIFEprepped,"genetics/Heart_PGS_pathway.RData"))
+myTab_Heart_PGS_pathway = copy(SamplesAsImputed)
 
 load(paste0(path_LIFEprepped,"genetics/Adult_PGS_SERPINA6.RData"))
-myTab_Adult_PGS = copy(SamplesAsImputed)
+myTab_Adult_PGS_SERPINA6 = copy(SamplesAsImputed)
 
 load(paste0(path_LIFEprepped,"genetics/Heart_PGS_SERPINA6.RData"))
-myTab_Heart_PGS = copy(SamplesAsImputed)
+myTab_Heart_PGS_SERPINA6 = copy(SamplesAsImputed)
 
-#' # Merge with phenotype data ####
+#' # Merge and filter data ####
 #' ***
+myTab_Adult_PGS = cbind(myTab_Adult_PGS_genomewide[,c(1:12,34,41),with=F],myTab_Adult_PGS_pathway[,20],myTab_Adult_PGS_SERPINA6[,13])
+names(myTab_Adult_PGS)[c(13:16)] = c("TT_men","TT_women","E2_men","CORT_comb")
+
+myTab_Heart_PGS = cbind(myTab_Heart_PGS_genomewide[,c(1:12,34,41),with=F],myTab_Heart_PGS_pathway[,20],myTab_Heart_PGS_SERPINA6[,13])
+names(myTab_Heart_PGS)[c(13:16)] = c("TT_men","TT_women","E2_men","CORT_comb")
+
+save(myTab_Adult_PGS, file = paste0(path_LIFEprepped,"genetics/Adult_PGS_selection.RData"))
+save(myTab_Heart_PGS, file = paste0(path_LIFEprepped,"genetics/Heart_PGS_selection.RData"))
+
+#' # Rerun association with scaled scores ####
+#' ***
+myScores = names(myTab_Adult_PGS)[13:16]
+
+#' ## Adult ####
 load(paste0(path_LIFEprepped,"phenotypes/Adult_QC.RData"))
 myTab_Adult = copy(myTab) 
-
-load(paste0(path_LIFEprepped,"phenotypes/Heart_QC.RData"))
-myTab_Heart = copy(myTab) 
-
-#' I merge the scores to the phenotype file.
 matched = match(myTab_Adult$ALIQUOT_genetics,myTab_Adult_PGS$Aliquot)
 table(myTab_Adult$ALIQUOT_genetics == myTab_Adult_PGS$Aliquot[matched])
 table(myTab_Adult$GENDER,myTab_Adult_PGS$sex[matched])
 myTab_Adult = cbind(myTab_Adult,myTab_Adult_PGS[matched,-c(1,2),with=F])
-
-matched = match(myTab_Heart$ALIQUOT_genetics,myTab_Heart_PGS$Aliquot)
-table(myTab_Heart$ALIQUOT_genetics == myTab_Heart_PGS$Aliquot[matched])
-table(myTab_Heart$GENDER,myTab_Heart_PGS$sex[matched])
-myTab_Heart = cbind(myTab_Heart,myTab_Heart_PGS[matched,-c(1,2),with=F])
-
-#' # Run linear regression ####
-#' ***
-myScores = names(myTab_Adult)[42:45]
 
 dumTab1 = foreach(i = 1:length(myScores))%do%{
   #i=1
   
   # Step 1: get hormone and setting out of score name
   hormone = gsub("_.*","",myScores[i])
-  range = gsub(".*_","",myScores[i])
   setting = gsub(hormone,"",myScores[i])
-  setting = gsub(range,"",setting)
   setting = gsub("_","",setting)
   
   # Step 2: filter for correct setting
@@ -89,6 +91,7 @@ dumTab1 = foreach(i = 1:length(myScores))%do%{
     data[,hormone := E2]
   }
   data[,score := get(myScores[i])]
+  data[,score := scale(score)]
   
   # Step 4: do linear regression
   model0 = lm(log(hormone) ~ GENDER + AGE + D126_time + log(D074_BMI), data = data)
@@ -107,7 +110,7 @@ dumTab1 = foreach(i = 1:length(myScores))%do%{
   result = data.table(score = myScores[i],
                       hormone = hormone, 
                       setting = setting,
-                      range = range,
+                      range = 0.001,
                       R2 = prs.r2,
                       sampleSize = length(model2$residuals),
                       beta = prs.coef[1],
@@ -117,14 +120,16 @@ dumTab1 = foreach(i = 1:length(myScores))%do%{
   result
 }
 PGS.result.Adult = rbindlist(dumTab1)
-PGS.result.Adult[,max(R2),by=c("hormone","setting")]
-PGS.result.Adult[,min(pval),by=c("hormone","setting")]
-PGS.result.Adult[pval<5e-8,]
+PGS.result.Adult
 
-#' Best signal at a range from 0 - 1e-4
-#' 
-#' Now the same for Heart (some column names are different)
-#' 
+#' ## Heart ####
+load(paste0(path_LIFEprepped,"phenotypes/Heart_QC.RData"))
+myTab_Heart = copy(myTab) 
+matched = match(myTab_Heart$ALIQUOT_genetics,myTab_Heart_PGS$Aliquot)
+table(myTab_Heart$ALIQUOT_genetics == myTab_Heart_PGS$Aliquot[matched])
+table(myTab_Heart$GENDER,myTab_Heart_PGS$sex[matched])
+myTab_Heart = cbind(myTab_Heart,myTab_Heart_PGS[matched,-c(1,2),with=F])
+
 dumTab2 = foreach(i = 1:length(myScores))%do%{
   #i=1
   
@@ -132,7 +137,6 @@ dumTab2 = foreach(i = 1:length(myScores))%do%{
   hormone = gsub("_.*","",myScores[i])
   range = gsub(".*_","",myScores[i])
   setting = gsub(hormone,"",myScores[i])
-  setting = gsub(range,"",setting)
   setting = gsub("_","",setting)
   
   # Step 2: filter for correct setting
@@ -152,6 +156,7 @@ dumTab2 = foreach(i = 1:length(myScores))%do%{
     data[,hormone := E2]
   }
   data[,score := get(myScores[i])]
+  data[,score := scale(score)]
   
   # Step 4: do linear regression
   model0 = lm(log(hormone) ~ GENDER + AGE + T991_time + log(D157_BMI), data = data)
@@ -170,7 +175,7 @@ dumTab2 = foreach(i = 1:length(myScores))%do%{
   result = data.table(score = myScores[i],
                       hormone = hormone, 
                       setting = setting,
-                      range = range,
+                      range = 0.001,
                       R2 = prs.r2,
                       sampleSize = length(model2$residuals),
                       beta = prs.coef[1],
@@ -180,13 +185,8 @@ dumTab2 = foreach(i = 1:length(myScores))%do%{
   result
 }
 PGS.result.Heart = rbindlist(dumTab2)
-PGS.result.Heart[,max(R2),by=c("hormone","setting")]
-PGS.result.Heart[,min(pval),by=c("hormone","setting")]
-PGS.result.Heart[pval<5e-8,]
-PGS.result.Heart[pval==min(pval),]
+PGS.result.Heart
 
-#' No associations, but also best association with range 0 to 1e-4
-#' 
 #' # Save PGS results ####
 #' ***
 PGS.result.Adult[,study := "Adult"]
@@ -194,8 +194,8 @@ PGS.result.Heart[,study := "Heart"]
 
 PGS.result = rbind(PGS.result.Adult, PGS.result.Heart)
 
-save(PGS.result,file = "../results/08_PGSresults_SERPINA6.RData")
-write.table(PGS.result, file = "../results/08_PGSresults_SERPINA6.txt",quote = F,sep="\t",row.names = F,col.names = T,dec = ".")
+save(PGS.result,file = "../results/10_PGSresults_selectionScaled.RData")
+fwrite(PGS.result, file = "../results/10_PGSresults_selectionScaled.txt",quote = F,sep="\t",row.names = F,col.names = T,dec = ".")
 
 #' # Make some plots ####
 #' ***
@@ -205,54 +205,86 @@ plotdata = copy(PGS.result)
 
 plotdata[,printP := signif(pval, digits = 3)]
 plotdata[,printP2 := sub("e", "*x*10^", printP)]
+plotdata[,trait := gsub("_", " - ", score)]
 
-#' Now I need a loop over each trait 
-ToDoList = plotdata[,.N,by=c("hormone","setting","study")]
+myMax = plotdata[study == "Adult",max(R2)]
+ggplot(data = plotdata[study == "Adult"], 
+       aes(x = factor(trait), y = R2)) +
+  # Specify that we want to print p-value on top of the bars
+  geom_text(
+    aes(label = paste(printP2)),
+    vjust = -1.5,
+    hjust = 0,
+    angle = 45,
+    cex = 4,
+    parse = T
+  )  +
+  # Specify the range of the plot, *1.25 to provide enough space for the p-values
+  scale_y_continuous(limits = c(0, myMax * 1.25)) +
+  # Specify the axis labels
+  xlab("Horomone - sample setting") +
+  ylab(expression(paste("PGS model fit:  ", R ^ 2))) +
+  # Draw a bar plot
+  geom_bar(aes(fill = -log10(pval)), stat = "identity") +
+  # Specify the colors
+  scale_fill_gradient2(
+    low = "dodgerblue",
+    high = "firebrick",
+    mid = "dodgerblue",
+    midpoint = 1e-4,
+    name = bquote(atop(-log[10] ~ model, italic(P) - value),)
+  ) +
+  # Some beautification of the plot
+  theme_classic() + theme(
+    axis.title = element_text(face = "bold", size = 18),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(face = "bold", size = 18),
+    legend.text = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+# save the plot
+ggsave(paste0("../results/09_PGS_barplots/Adult_finalScores.png"), height = 7, width = 7)
 
-for(i in 1:dim(ToDoList)[1]){
-  #i=1
-  myMax = plotdata[hormone == ToDoList[i,hormone] & setting == ToDoList[i,setting],max(R2)]
-  ggplot(data = plotdata[hormone == ToDoList[i,hormone] & setting == ToDoList[i,setting] & study == ToDoList[i,study]], 
-         aes(x = factor(range), y = R2)) +
-    # Specify that we want to print p-value on top of the bars
-    geom_text(
-      aes(label = paste(printP2)),
-      vjust = -1.5,
-      hjust = 0,
-      angle = 45,
-      cex = 4,
-      parse = T
-    )  +
-    # Specify the range of the plot, *1.25 to provide enough space for the p-values
-    scale_y_continuous(limits = c(0, myMax * 1.25)) +
-    # Specify the axis labels
-    xlab(expression(italic(P) - value ~ threshold ~ (italic(P)[T]))) +
-    ylab(expression(paste("PGS model fit:  ", R ^ 2))) +
-    # Draw a bar plot
-    geom_bar(aes(fill = -log10(pval)), stat = "identity") +
-    # Specify the colors
-    scale_fill_gradient2(
-      low = "dodgerblue",
-      high = "firebrick",
-      mid = "dodgerblue",
-      midpoint = 1e-4,
-      name = bquote(atop(-log[10] ~ model, italic(P) - value),)
-    ) +
-    # Some beautification of the plot
-    theme_classic() + theme(
-      axis.title = element_text(face = "bold", size = 18),
-      axis.text = element_text(size = 14),
-      legend.title = element_text(face = "bold", size = 18),
-      legend.text = element_text(size = 14),
-      axis.text.x = element_text(angle = 45, hjust = 1)
-    )
-  # save the plot
-  filename = paste(ToDoList[i,hormone],ToDoList[i,setting],ToDoList[i,study],sep="_")
-  ggsave(paste0("../results/08_PGS_barplots/",filename,".png"), height = 7, width = 7)
-  
-}
+myMax = plotdata[study == "Heart",max(R2)]
+ggplot(data = plotdata[study == "Heart"], 
+       aes(x = factor(trait), y = R2)) +
+  # Specify that we want to print p-value on top of the bars
+  geom_text(
+    aes(label = paste(printP2)),
+    vjust = -1.5,
+    hjust = 0,
+    angle = 45,
+    cex = 4,
+    parse = T
+  )  +
+  # Specify the range of the plot, *1.25 to provide enough space for the p-values
+  scale_y_continuous(limits = c(0, myMax * 1.25)) +
+  # Specify the axis labels
+  xlab("Horomone - sample setting") +
+  ylab(expression(paste("PGS model fit:  ", R ^ 2))) +
+  # Draw a bar plot
+  geom_bar(aes(fill = -log10(pval)), stat = "identity") +
+  # Specify the colors
+  scale_fill_gradient2(
+    low = "dodgerblue",
+    high = "firebrick",
+    mid = "dodgerblue",
+    midpoint = 1e-4,
+    name = bquote(atop(-log[10] ~ model, italic(P) - value),)
+  ) +
+  # Some beautification of the plot
+  theme_classic() + theme(
+    axis.title = element_text(face = "bold", size = 18),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(face = "bold", size = 18),
+    legend.text = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+# save the plot
+ggsave(paste0("../results/09_PGS_barplots/Heart_finalScores.png"), height = 7, width = 7)
 
 #' # Session Info ####
 #' ***
 sessionInfo()
 message("\nTOTAL TIME : " ,round(difftime(Sys.time(),time0,units = "mins"),3)," minutes")
+

@@ -13,7 +13,7 @@
 #'
 #' # Introduction ####
 #' ***
-#' CORT is monogenetic, and trying to use a genome-wide or pathway-wide score resulted in no significant results. Hence, I want to use the Cortisol Binding Globulin (CBG, aka SERPINA6) region only, and test if this helps. 
+#' CORT is monogenetic, and trying to use a genome-wide or pathway-wide score resulted in no significant results. Hence, I want to use the Cortisol Binding Globulin (CBG, aka *SERPINA6*) region only, and test if this helps. 
 #' 
 #' # Initialize ####
 #' ***
@@ -49,19 +49,21 @@ write.table(CORT$ID,file = "../results/07_SNPList_raw.txt",
 studies = c("Adult","Heart")
 
 #' Create a file containing the different p-value thresholds for inclusion of SNPs in the PGS.
-dummy = c(1e-3,1e-4,1e-5,1e-6)
+thresholds = c(1e-3,1e-4,1e-5,1e-6)
 
 #' # Loop ####
 #' ***
 for(i in 1:length(files)){
   #i=1
-  hormone = gsub("_.*","",files[i])
-  setting = gsub("_Pathway.*","",files[i])
+  dummy = gsub(".txt.gz","",files[i])
+  dummy = gsub("PathwayRegions","SERPINA6",dummy)
+  hormone = gsub("_.*","",dummy)
+  setting = gsub("_SERPINA6.*","",dummy)
   setting = gsub(".*_","",setting)
   message("Working on ",hormone, " (setting: ",setting,")")
   
   # Step 0: extract the SNP ID (column 14) and p-values (column 7) from the summary statistics file
-  myCall0 = paste0("zcat ",path_SumStats_QC,files[i]," | awk '{print $14,$7}' > ",path_SumStats_QC,hormone,"_",setting,"_SERPINA6.pvalue")
+  myCall0 = paste0("zcat ",path_SumStats_QC,dummy,".txt.gz | awk '{print $14,$7}' > ",path_SumStats_QC,hormone,"_",setting,"_SERPINA6.pvalue")
   system(myCall0)
   
   for(j in 1:length(studies)){
@@ -91,20 +93,22 @@ for(i in 1:length(files)){
     system(myCall1)
     
     # Step 2: Clumping (PLINK 1.9)
-    myCall2 = paste0(path_plink1.9,
-                     " --bfile ",path_LIFEprepped,"genetics/",study,"_QC_SERPINA6",
-                     " --clump-p1 1",
-                     " --clump-r2 0.1",
-                     " --clump-kb 250",
-                     " --clump ",path_SumStats_QC,files[i],
-                     " --clump-snp-field ID",
-                     " --clump-field P",
-                     " --out ../results/07_PLINK_PGS_SERPINA6/",study,"_Clumping_",hormone,"_",setting)
-    myCall2
-    system(myCall2)
+    if(study == "Adult"){
+      myCall2 = paste0(path_plink1.9,
+                       " --bfile ",path_LIFEprepped,"genetics/",study,"_QC_SERPINA6",
+                       " --clump-p1 1",
+                       " --clump-r2 0.1",
+                       " --clump-kb 250",
+                       " --clump ",path_SumStats_QC,files[i],
+                       " --clump-snp-field ID",
+                       " --clump-field P",
+                       " --out ../results/07_PLINK_PGS_SERPINA6/",study,"_Clumping_",hormone,"_",setting)
+      myCall2
+      system(myCall2)
+    }
     
     # Step 3: extract clumped SNPs
-    clumpedSNPs = fread(paste0("../results/07_PLINK_PGS_SERPINA6/",study,"_Clumping_",hormone,"_",setting,".clumped"),header = T)
+    clumpedSNPs = fread(paste0("../results/07_PLINK_PGS_SERPINA6/Adult_Clumping_",hormone,"_",setting,".clumped"),header = T)
     CORT2 = copy(CORT)
     CORT2 = CORT2[ID %in% clumpedSNPs$SNP]
     setorder(CORT2,BP)
@@ -133,10 +137,10 @@ for(i in 1:length(files)){
     stopifnot(pvar$ALT == CORT2$EA)
     
     # Step 6: calculate scores
-    score_mat = matrix(nrow = dim(geno_mat)[1],ncol = length(dummy))
-    for(k in 1:length(dummy)){
+    score_mat = matrix(nrow = dim(geno_mat)[1],ncol = length(thresholds))
+    for(k in 1:length(thresholds)){
       #k=1
-      filt = CORT2$P<dummy[k]
+      filt = CORT2$P<thresholds[k]
       table(filt)
       weights = CORT2$BETA[filt]
       score = geno_mat[,filt] %*% weights

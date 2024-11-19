@@ -28,7 +28,8 @@ source("../../SourceFile.R")
 #' ***
 files = list.files(path = path_SumStats_QC)
 files = files[grepl(".gz",files)]
-files = files[!grepl("Pathway",files)]
+files = files[!grepl("PathwayRegions",files)]
+files = files[!grepl("SERPINA6",files)]
 
 load("../../00_dataPrep/results/03_PathwayGenes_byCytoband.RData")
 
@@ -105,48 +106,43 @@ for(i in 1:length(files)){
   myCall0 = paste0("zcat ",path_SumStats_QC,files[i]," | awk '{print $14,$7}' > ",path_SumStats_QC,hormone,"_",setting,"_Pathway.pvalue")
   system(myCall0)
   
-  for(j in 1:length(studies)){
-    #j=1
-    time1<-Sys.time()
-    study = studies[j]
-    message("Working on ",hormone, " (setting: ",setting,") in the LIFE-",study," study")
-    
-    # Step 1: Clumping (PLINK 1.9)
-    myCall1 = paste0(path_plink1.9,
-                     " --bfile ",path_LIFEprepped,"genetics/",study,"_QC",
-                     " --clump-p1 1",
-                     " --clump-r2 0.1",
-                     " --clump-kb 250",
-                     " --clump ",path_SumStats_QC,files[i],
-                     " --clump-snp-field ID",
-                     " --clump-field P",
-                     " --out ../results/05_PLINK_PGS_pathway/",study,"_Clumping_",hormone,"_",setting)
-    myCall1
-    system(myCall1)
-    
-    # Step 2: extract SNPs out of result file (these are the clumped independent SNPs)
-    myCall2 = paste0("awk 'NR!=1{print $3}' ../results/05_PLINK_PGS_pathway/",study,"_Clumping_",hormone,"_",setting,".clumped >  ../results/05_PLINK_PGS_pathway/",study,"_Clumping_",hormone,"_",setting,".valid.snp")
-    system(myCall2)
-   
-    # Step 3: get scores using the ID (col 14), effect allele (col 4) and effect size (col 8) of the summary statistics file
-    if(study == "Adult"){
-      path_genetics = path_LIFEAdult_Genetics
-    }else{
-      path_genetics = path_LIFEHeart_Genetics
-    }
-    myCall3 = paste0(path_plink2,
-                     " --pfile ",path_genetics,
-                     " --extract ../results/05_PLINK_PGS_pathway/",study,"_Clumping_",hormone,"_",setting,".valid.snp",
-                     " --score ",path_SumStats_QC,files[i]," 14 4 8 header",
-                     " --q-score-range ../results/05_range_list ",path_SumStats_QC,hormone,"_",setting,"_Pathway.pvalue",
-                     " --out ../results/05_PLINK_PGS_pathway/",study,"_Score_",hormone,"_",setting)
-    myCall3
-    system(myCall3)
-    
-    # Step 4: check time
-    time_dif = round(difftime(Sys.time(),time1,units = "mins"),3)
-    myTab[file == files[i] & study == studies[j], time := time_dif]
-  }
+  # Step 1: Clumping (PLINK 1.9) using LIFE-Adult data
+  myCall1 = paste0(path_plink1.9,
+                   " --bfile ",path_LIFEprepped,"genetics/Adult_QC",
+                   " --clump-p1 1",
+                   " --clump-r2 0.1",
+                   " --clump-kb 250",
+                   " --clump ",path_SumStats_QC,files[i],
+                   " --clump-snp-field ID",
+                   " --clump-field P",
+                   " --out ../results/05_PLINK_PGS_pathway/Adult_Clumping_",hormone,"_",setting)
+  myCall1
+  system(myCall1)
+  
+  # Step 2: extract SNPs out of result file (these are the clumped independent SNPs)
+  myCall2 = paste0("awk 'NR!=1{print $3}' ../results/05_PLINK_PGS_pathway/Adult_Clumping_",hormone,"_",setting,".clumped >  ../results/05_PLINK_PGS_pathway/Adult_Clumping_",hormone,"_",setting,".valid.snp")
+  system(myCall2)
+  
+  # Step 3: get scores using the ID (col 14), effect allele (col 4) and effect size (col 8) of the summary statistics file
+  
+  myCall3a = paste0(path_plink2,
+                    " --pfile ",path_LIFEAdult_Genetics,
+                    " --extract ../results/05_PLINK_PGS_pathway/Adult_Clumping_",hormone,"_",setting,".valid.snp",
+                    " --score ",path_SumStats_QC,files[i]," 14 4 8 header",
+                    " --q-score-range ../results/03_range_list ",path_SumStats_QC,hormone,"_",setting,".pvalue",
+                    " --out ../results/05_PLINK_PGS_pathway/Adult_Score_",hormone,"_",setting)
+  myCall3a
+  system(myCall3a)
+  
+  myCall3b = paste0(path_plink2,
+                    " --pfile ",path_LIFEHeart_Genetics,
+                    " --extract ../results/05_PLINK_PGS_pathway/Adult_Clumping_",hormone,"_",setting,".valid.snp",
+                    " --score ",path_SumStats_QC,files[i]," 14 4 8 header",
+                    " --q-score-range ../results/03_range_list ",path_SumStats_QC,hormone,"_",setting,".pvalue",
+                    " --out ../results/05_PLINK_PGS_pathway/Heart_Score_",hormone,"_",setting)
+  myCall3b
+  system(myCall3b)
+  
 }
 myTab
 
