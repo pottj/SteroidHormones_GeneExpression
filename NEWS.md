@@ -2,6 +2,52 @@
 
 Here I want to track my progress
 
+## November, 22nd, 2024
+
+**PGS**:
+
+- update: choose SNPs from the same set: first select SNPs for Adult (pruning, clumping), then use these SNPs for Heart as well (better for comparison)
+- PGS selection: (based on criteria genome-wide significant and highest $r^2$ per hormone and sample set in LIFE-Adult)
+
+| hormone | sample set | p-value threshold | SNP set      | comment                     |
+| ------- | ---------- | ----------------: | ------------ | --------------------------- |
+| TT      | men        | 0.001             | genome-wide  | pathway-wide as sensitivity | 
+| TT      | women      | 0.001             | genome-wide  | pathway-wide as sensitivity | 
+| E2      | men        | 0.001             | pathway-wide | genome-wide as sensitivity  | 
+| E2      | women      |                   |              | no strong instruments       | 
+| CORT    | combined   | 0.001             | *SERPINA6*   | p-value<1e-4 as sensitivity | 
+
+**TWAS**
+
+- rerun restricted to relevant traits
+    - TT (separated by sex), E2 (separated by sex), and CORT (sex-combined)
+    - hierarchical FDR over the 5 traits and all ~20,000 probes (a bit conservative, as women each probe-individual pair is only tested 3 times, but it is the easiest way)
+    - two models: with and without BMI adjustment - check hierarchical FDR over 10 trait - model combinations
+- check overlap between 
+    - the two models in each study (venn2 + euler plot to check effect direction)
+    - LIFE Adult and LIFE Heart (venn4 + euler plot to check effect direction)
+- create bar plots and volcano plots
+
+Result in LIFE Adult: (hierarchical FDR significant probes) 
+
+| hormone | sample set | # probes (no BMI) | # probes (BMI adj.) | # probes in overlap | up  | down | 
+| ------- | ---------- | ----------------: | ------------------: | ------------------: | ---:| ---: |
+| TT      | men        | 7657              | 281                 | 280                 | 110 | 170  |
+| E2      | men        | 10                | 10                  | 5                   | 0   | 5    |
+| TT      | women      | 3                 | 2                   | 0                   | 1   | 1    |
+| E2      | women      | 1473              | 77                  | 77                  | 18  | 59   |
+| CORT    | combined   | 973               | 4421                | 930                 | 415 | 515  |
+
+Replicated in LIFE Heart: (p-value < 0.05 and same effect direction in Heart)
+
+| hormone | sample set | # probes replicated | up  | down | different direction | 
+| ------- | ---------- | ------------------: | --: | ---: | -------------------:| 
+| TT      | men        | 53                  | 10  | 40   | 3                   |
+| E2      | men        | 0                   |     |      |                     |
+| TT      | women      | 0                   |     |      |                     |
+| E2      | women      | 2                   | 1   |      | 1                   |
+| CORT    | combined   | 565                 | 276 | 275  | 14                  |
+
 ## November, 15th, 2024
 
 **PGS**:

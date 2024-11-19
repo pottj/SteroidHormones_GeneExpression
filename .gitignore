@@ -50,8 +50,7 @@ po/*~
 rsconnect/
 
 # other stuff
-SourceFile_angmar.R
-SourceFile_forostar.R
+SourceFile.R
 archive/
 temp/
 data/
