@@ -2,6 +2,25 @@
 
 Here I want to track my progress
 
+## Novmeber, 29th, 2024
+
+- 2SLS: no significant results after hier. FDR (transcriptome-wide and gene set based)
+- 1-sample MR using PGS as instruments: after hier. FDR, *SERPINA1* is still significantly linked to CORT. But this might just be confounding by LD (CORT PGS uses only SNPs in the *SERPINA6* gene region, neighbor of *SERPINA1*)
+- 2-sample MR using SNPs as instruments: 
+    - data source for trans-eQTLS: eQTLGen phase I 
+    - only TT and E2, because after matching no significant SNP remained for CORT
+    - after hier. FDR, three genes are significantly linked to TT in men :
+        - *ABCA1*
+	      - *ABCG1*
+	      - *EIF4A1P2*
+- To do:  
+    - rerun 2-sample MR using MR-Egger (high pleiotropy)
+    - rerun 2-sample MR using only pathway SNPs (at the moment all ~100 SNPs that are significantly associated with TT and in eQTLGen)
+- Discussed with Steve: 
+    - use MVMR to adjust for BMI effect
+    - maybe worthwhile to select genes with known AR binding site, and with either known BMI association or no BMI link whatsoever. Then analyze the BMI - TT feedback loop in more detail
+    - is it BMI or is it fat mass / adipose tissue? (but we do not have adipose tissue gene expression, GTEx only provides trans-eQTLs on the chromosome of the respective gene)
+    
 ## November, 22nd, 2024
 
 **PGS**:

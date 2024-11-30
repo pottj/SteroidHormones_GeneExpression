@@ -24,7 +24,10 @@ Used data sets (so far):
     - [GWAS Catalog GCST90020091](https://www.ebi.ac.uk/gwas/studies/GCST90020091) (men)
 - Cortisol (CORT): [Chan and Wu](https://pubmed.ncbi.nlm.nih.gov/38525495/), (CORNET consortium + LIFE)
     - [figshare](https://figshare.com/articles/dataset/cortisol_cornet_life_combined/26182004) 
-    
+- eQTLGen (trans-eQTLs): [Võsa, U., Claringbould, A., (…), Franke, L.; 2018; Unraveling the polygenic architecture of complex traits using blood eQTL meta-analysis](https://eqtlgen.org/publications.html), [publication](https://pubmed.ncbi.nlm.nih.gov/34475573/)
+    - [Full trans-eQTL summary statistics download](https://eqtlgen.org/trans-eqtls.html)
+  
+  
 Used gene regions: 
 
 - 62 genes as listed in the [KEGG Steroid hormone biosynthesis pathway](https://www.genome.jp/dbget-bin/www_bget?path:hsa00140)
