@@ -2,6 +2,13 @@
 
 Here I want to track my progress
 
+## December, 13th, 2024
+
+- MR-Egger: 3 genes (*EIF4A1P2*, *EIF5AL1*, *CNST*)
+- MR-IVW with pathway SNPs: 1 gene (*EIF4A1P2*)
+- MR-Egger with pathway SNPs: 2 genes (*EIF4A1P2*, *EIF5AL1*)
+- MVMR-IVW with TT pathway SNPs & all BMI SNPs: 6 genes (*MYLIP*, *ABCA1*, *EIF5AL1*, *EIF4A1P2*, *CITED4*, *ABCG1*)   
+
 ## Novmeber, 29th, 2024
 
 - 2SLS: no significant results after hier. FDR (transcriptome-wide and gene set based)
