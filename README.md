@@ -2,19 +2,47 @@
 
 created: 14/06/2024
 
-last updated: 04/07/2024
+last updated: 10/05/2024
 
 ## Overview 
 
-This project is a collaboration of me, Stephen Burgess (MRC BSU, University of Cambridge, UK), and Markus Scholz (IMISE, University of Leipzig, GER) to test if we can detect causal effects of steroid hormones on gene expression levels in whole blood / PBMCs. At the moment, we are using individual-level data from the LIFE-Adult and LIFE-Heart studies (Leipzig, GER; project agreement 785). 
+This project is a collaboration of me, Stephen Burgess (MRC BSU, University of Cambridge, UK), Markus Scholz (IMISE, University of Leipzig, GER), and Alexander Teumer (University of Greifswald, GER) to test if we can detect causal effects of steroid hormones on gene expression levels in whole blood / PBMCs. 
+
+At the moment, we are focusing on gene expression using individual-level data from the LIFE-Adult and LIFE-Heart studies (Leipzig, GER; project agreement 785), and from SHIP (Greifswald, GER; project agreement SHIP/2025/31/D), and proteomics data from the UK Biobank (UKB, UK; project application 98032). 
 
 ## Short analysis plan
 
-### PGS
+### Gene expression analyses (LIFE and SHIP)
 
-Generation of scores using publicly available data (PGS Catalog, previously published GWAS summary statistics); testing the scores for validity in MR analyses by linear regression models. For this step, we will use all individuals of LIFE-Adult and LIFE-Heart with genetic data and available steroid hormone measurements.
+1) Data preparation
 
-Used data sets (so far): 
+Check and filter data, create groups (post-/peri-menopausal), check hormonal distribution and decide for or against transformation. 
+
+2) Polygenetic Score (PGS)
+
+Generation of scores using publicly available data (PGS Catalog, previously published GWAS summary statistics); testing the scores for validity in MR analyses by linear regression models. 
+
+3) Transcriptome-wide association studies (TWASs)
+
+Testing the association of steroid hormones on gene expression using limma. Results will be corrected for multiple testing using hierarchical FDR (correcting for multiple tests on genes and hormones). For this step, we will use all individuals of LIFE-Adult and LIFE-Heart with gene expression data and available steroid hormone measurements. Genes associated in both LIFE-Adult and LIFE-Heart will be selected for further analyses (candidate genes).
+
+4) Mendelian Randomization (MR)
+
+Testing with 2-stage-least-square for causal effect of hormones on gene expression in whole blood (1-sample approach). In addition, testing with IVW and Egger for causal effects using data from the UKB and eQTLGen. 
+
+5) Multivariable MR (MVMR)
+
+Testing for independent hormonal effects, conditioned on BMI effect. 
+
+### Proteomics analyses (LIFE and SHIP)
+
+1) Data preparation 
+2) Proteome-wide association study (PWAS)
+3) MR using 2SLS 
+
+### Data used so far
+
+**GWAS summary statistics**
 
 - Testosterone (TT): [Ruth et al. (2020)](https://pubmed.ncbi.nlm.nih.gov/32042192/)
     - [GWAS Catalog GCST90012112](https://www.ebi.ac.uk/gwas/studies/GCST90012112) (women)
@@ -27,38 +55,11 @@ Used data sets (so far):
 - eQTLGen (trans-eQTLs): [Võsa, U., Claringbould, A., (…), Franke, L.; 2018; Unraveling the polygenic architecture of complex traits using blood eQTL meta-analysis](https://eqtlgen.org/publications.html), [publication](https://pubmed.ncbi.nlm.nih.gov/34475573/)
     - [Full trans-eQTL summary statistics download](https://eqtlgen.org/trans-eqtls.html)
   
-  
-Used gene regions: 
+**Used gene regions**: 
 
 - 62 genes as listed in the [KEGG Steroid hormone biosynthesis pathway](https://www.genome.jp/dbget-bin/www_bget?path:hsa00140)
 - *SHBG* (Sex Hormone Binding Globulin)
 - *SERPINA6* (aka CBG, Corticosteroid Binding Globulin)
-
-Used hormones: 
-
-- Testosterone (TT, sex-stratified)
-- Estradiol (E2, sex-stratified)
-- Progesterone (P4, sex-stratified)
-- Cortisol (CORT, sex-combined)
-- Aldosterone (ALDO, sex-combined)
-
-Used SNPs: 
-
-- PGS SNPs
-- suggestive significant SNPs (pairwise independent)
-- SNPs within/near genes coding for enzyms of the steroid hormone biosynthesis pathway
-
-### TWAS
-
-Testing the association of steroid hormones on gene expression using limma. Results will be corrected for multiple testing using hierarchical FDR (correcting for multiple tests on genes and hormones). For this step, we will use all individuals of LIFE-Adult and LIFE-Heart with gene expression data and available steroid hormone measurements. Genes associated in both LIFE-Adult and LIFE-Heart will be selected for further analyses (candidate genes).
-
-### 2SLS / 2SMR / SEM
-
-Testing for causal effects of steroid hormones on gene expression of selected candidate genes. For this step, we will use all individuals of LIFE-Adult and LIFE-Heart with genetic data (PGS), gene expression data, and available steroid hormone measurements. Genes significantly affected in both LIFE-Adult and LIFE-Heart and with the same effect direction in both studies will be selected for further enrichment analyses.
-
-### Enrichment
-
-We will test the selected genes for pathway enrichment (e.g. pathways obtained from KEGG), enrichment of hormone response elements (consensus sequence), and for overlaps between the strata (shared causal effects between men and women or shared causal effects between pre- and postmenopausal women). These analyses will be done using the summary statistics from the TSLS regression.
 
 ## List of abbreviations
 
