@@ -59,3 +59,5 @@ results/
 *.out
 *.pdf
 _tests/
+_dataQC/
+figures_unsorted/

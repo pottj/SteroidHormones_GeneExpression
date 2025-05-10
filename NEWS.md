@@ -2,6 +2,13 @@
 
 Here I want to track my progress
 
+## May, 9th, 2025
+
+- rearrange and update repository: 
+  - one folder for LIFE analyses
+  - one folder for UKB analyses
+  - one folder for SHIP replication
+
 ## December, 13th, 2024
 
 - MR-Egger: 3 genes (*EIF4A1P2*, *EIF5AL1*, *CNST*)
