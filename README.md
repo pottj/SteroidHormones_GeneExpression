@@ -34,7 +34,7 @@ Testing with 2-stage-least-square for causal effect of hormones on gene expressi
 
 Testing for independent hormonal effects, conditioned on BMI effect. 
 
-### Proteomics analyses (LIFE and SHIP)
+### Proteomics analyses (UK Biobank)
 
 1) Data preparation 
 2) Proteome-wide association study (PWAS)

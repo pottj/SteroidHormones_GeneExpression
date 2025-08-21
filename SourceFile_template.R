@@ -78,6 +78,7 @@ path_LIFEprepped = paste0(projectpath,"_data/dataQC/")
 # Data accesss via UKB application number 98032 
 # 
 UKB_SNP_data = "PATH/TO/UKB/genotypes-imputed/"
-UKB_phenotypes = "PATH/TO/UKBB/phenotypes/ukb672224.tab"
-UKB_phenotypes_filtered = "PATH/TO/UKB_projectFiltered_phenotypes/"
-UKB_genotypes_filtered = "PATH/TO/UKB_projectFiltered_genotypes/"
+UKB_phenotypes = "PATH/TO/UKB/phenotypes/ukb672224.tab"
+UKB_proteomics = "PATH/TO/UKB/proteomics/"
+UKB_MedicationCoding = "PATH/TO/Wu et al. 2019/Supplemental Data 1 excel sheet"
+UKB_dataQC = "PATH/TO/dataQC/"

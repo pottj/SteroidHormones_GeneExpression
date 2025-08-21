@@ -2,6 +2,11 @@
 
 Here I want to track my progress
 
+## August, 21st, 2025
+
+- update TWAS with replication in SHIP
+- update sample selection & checks in UKB and rerun PWAS 
+
 ## May, 9th, 2025
 
 - rearrange and update repository: 
